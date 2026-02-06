@@ -36,12 +36,12 @@ function App() {
                         padding: '10px',
                         width: '150px',
                         boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
-                        background: card.rarity === 'Secret Rare' ? 'gold' : 'white'
+                        background: card.rarity === 'Ultra Rare' ? 'gold' : 'white'
                     }}>
-                        <img src = {card.imageUrl} alt="{card.name}" style={{width: '100%', borderRadius: '4px'}} />
-                        <h3>{card.name}</h3>
+                        <img src = {card.imageUrl} alt={card.name} style={{width: '100%', borderRadius: '4px'}} />
+                        <h3 style={{ color: '#f54d4d' }}>{card.name}</h3>
                         <p style={{ color: '#555' }}>{card.rarity}</p>
-                        <p>Set: {card.set}</p>
+                        <p style={{ color: '#613838' }}>Set: {card.setCode}</p>
                     </div>
                 ))}
             </div>
