@@ -2,24 +2,49 @@ import { useState, useEffect } from "react";
 import './App.css';
 
 function App() {
-    const [message, setMessage] = useState("");
+    const [pack, setPack] = useState([]); // State to hold the opened pack
 
-    useEffect(() => {
-        fetch('http://localhost:8080/api/hello')
-            .then((response) => response.text())
-            .then((data) => setMessage(data))
-            .catch((error) => console.error("Error connecting to Spring Boot:", error));
-    }, [])
+    const openPack = () => {
+        fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'})
+        .then((response) => response.json())
+        .then((data) => setPack(data))
+        .catch((error) => console.error("Error opening pack:", error)
+        )
+    }
 
     return (
-        <div style={{padding: '50px', textAlign: 'center'}}>
+        <div style={{padding: '20px', textAlign: 'center'}}>
             <h1>Lingo Card Alpha</h1>
-            <h3>Connection Status: </h3>
+            
+            {/* Display open pack button */}
+            <button onClick={openPack} style={{padding: '10px 20px', fontSize: '16px', cursor: 'pointer'}}>
+                Open Pack
+            </button>
 
-            {/* If there is a message, show in blue. Otherwise, show loading text */}
-            <h2 style={{ color: '#646CFF'}}>
-                {message ? message : "Connecting to backend..."}
-            </h2>
+            {/* Display the opened pack */}
+            <div style = {{
+                display: 'flex',
+                gap: '20px',
+                justifyContent: 'center',
+                marginTop: '30px',
+                flexWrap: 'wrap'
+            }}>
+                {pack.map((card, index) => (
+                    <div key={index} style={{
+                        border: '1px solid #ccc',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        width: '150px',
+                        boxShadow: '2px 2px 12px rgba(0,0,0,0.1)',
+                        background: card.rarity === 'Secret Rare' ? 'gold' : 'white'
+                    }}>
+                        <img src = {card.imageUrl} alt="{card.name}" style={{width: '100%', borderRadius: '4px'}} />
+                        <h3>{card.name}</h3>
+                        <p style={{ color: '#555' }}>{card.rarity}</p>
+                        <p>Set: {card.set}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

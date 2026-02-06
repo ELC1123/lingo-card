@@ -11,7 +11,7 @@ import lombok.Data;
 public class Card {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // Auto-incrementing ID
+    private Long id;            // Auto-incrementing ID
 
     private String name;        // name of card
     private String rarity;      // rarity of card (e.g., C, U, R, RR, UR, IR, SIR, HR, PROMO)
