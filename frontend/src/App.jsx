@@ -25,8 +25,10 @@ function App() {
     }
 
     return (
-        <div style={{padding: '20px', textAlign: 'center'}}>
-            <h1>Lingo Card Alpha</h1>
+        <div style={{padding: '10px', textAlign: 'center'}}>
+            <h1>
+                Lingo Card Alpha
+            </h1>
             
             {/* Display open pack button */}
             <button onClick={openPack} style={{
@@ -59,8 +61,8 @@ function App() {
                             border: `4px solid ${rarityStyle.borderColor}`,
                             borderRadius: '8px',
                             padding: '10px',
-                            width: '180px',
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+                            width: '205px',
+                            boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
                             background: rarityStyle.background,
                             transition: 'transform 0.2s',
                             cursor: 'pointer'
