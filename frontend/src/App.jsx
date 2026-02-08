@@ -34,7 +34,17 @@ function App() {
         fetch('http://localhost:8080/api/collection')
         .then((response) => response.json())
         .then((data) => {
-            setCollection(data);
+            const grouped = data.reduce((acc, card) => {
+                const key = card.name + card.set;
+                if(!acc[key]) {
+                    acc[key] = {...card, count: 1};
+                } else {
+                    acc[key].count += 1;
+                }
+                return acc;
+            }, {});
+
+            setCollection(Object.values(grouped));
             setView('binder');
         })
         .catch((error) => console.error("Error fetching collection:", error)
@@ -89,6 +99,26 @@ function App() {
                             <div style = {tagStyle}>
                                 {card.rarity}
                             </div>
+                            {card.count > 1 && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-10px',
+                                    right: '-10px',
+                                    background: '#ff5e5e',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '30px',
+                                    height: '30px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 'bold',
+                                    fontSize: '14px',
+                                    border: '2px solid white'
+                                }}>
+                                    x{card.count}
+                                </div>
+                            )}
                         </div>
                     )
                 })}
