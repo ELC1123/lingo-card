@@ -2,6 +2,7 @@ package com.lingocard.backend.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -31,63 +32,84 @@ public class PokemonTCGService {
         List<Card> boosterPack = new ArrayList<>();
 
         // Fetch cards from the specified set
-        String url = API_BASE_URL + "/sets/" + setCode;
+        String url = "https://api.tcgdex.net/v2/en/cards?set=" + setCode;
 
         // Make the API call and parse the response
         try {
-            JsonNode rootNode = fetchFromApi(url);
-            JsonNode cardsArray = rootNode.path("cards");
+            JsonNode cardsArray = fetchFromApi(url);
 
             // Check if dataNode is an array and has elements
             if(cardsArray.isArray() && cardsArray.size() > 0) {
-                for(int i = 0; i < 5; i++) {
-                    // Randomly select a card from the array
-                    int randomIndex = (int) (Math.random() * cardsArray.size());
-                    JsonNode cardNode = cardsArray.get(randomIndex);
+                List<JsonNode> commons = new ArrayList<>();
+                List<JsonNode> uncommons = new ArrayList<>();
+                List<JsonNode> rarePlus = new ArrayList<>();
 
-                    // Create a new Card object and populate its fields
-                    Card card = new Card(); 
-                    card.setName(cardNode.path("name").asText("Unknown"));
+                for(JsonNode node : cardsArray) {
+                    String cardId = node.path("id").asText();
+                    JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+                    String rarity = fullCardData.path("rarity").asText("Common").toLowerCase();
 
-                    // Handle image URL - if the API doesn't provide a valid image, use a default placeholder
-                    String imageBase = cardNode.path("image").asText("");
-                    if(imageBase != null && !imageBase.isEmpty() && !imageBase.equals("null")) {
-                        card.setImageUrl(imageBase + "/high.webp");
+                    // Bucket cards based on rarity, defaulting to "Common" if not provided
+                    if(rarity.contains("uncommon")) {
+                        uncommons.add(node);
+                    } else if(rarity.contains("common")) {
+                        commons.add(node);
                     } else {
-                        card.setImageUrl("https://assets.tcgdex.net/en/xy/xy1/1/high.webp");
+                        rarePlus.add(node);
                     }
+                }
 
-                    // Handle rarity - if the API doesn't provide a rarity, default to "Common"
-                    String cardId = cardNode.path("id").asText();
-                    if(cardId != null && !cardId.isEmpty() && !cardId.equals("null")) {
-                        try {
-                            JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+                // Debugging output to verify bucket sizes
+                System.out.println("Buckets -> C: " + commons.size() + " UC: " + uncommons.size() + " R+: " + rarePlus.size());
 
-                            if(fullCardData.has("rarity")) {
-                                card.setRarity(fullCardData.path("rarity").asText());
-                            } else {
-                                card.setRarity("Common");
-                            }
-                        } catch (Exception e) {
-                            System.out.println("⚠️ Failed to fetch rarity for card ID " + cardId + ": " + e.getMessage());
-                            card.setRarity("Unknown");
-                        }
-                    }
+                List<JsonNode> selectedNodes = new ArrayList<>();
+                selectedNodes.add(pickRandom(commons, cardsArray));
+                selectedNodes.add(pickRandom(commons, cardsArray));
+                selectedNodes.add(pickRandom(commons, cardsArray));
+                selectedNodes.add(pickRandom(uncommons, cardsArray));
+                selectedNodes.add(pickRandom(rarePlus, cardsArray));
 
-                    // Set the set code for the card
-                    card.setSetCode(setCode);
-
-                    // Add the card to the booster pack
-                    boosterPack.add(card);
+                for(JsonNode node : selectedNodes) {
+                    boosterPack.add(fullCard(node, setCode));
                 }
             } 
         } catch (Exception e) {
             System.out.println("⚠️ API FAILED: " + e.getMessage());
-            System.out.println("⚠️ Serving Backup Pack...");
             return getBackupPack();
         }
 
         return boosterPack;
+    }
+
+    // Helper method to pick a random card from a bucket, or fallback to the full array if the bucket is empty
+    private JsonNode pickRandom(List<JsonNode> bucket, JsonNode fallbackArray) {
+        Random rand = new Random();
+        if(bucket.isEmpty()) {
+            return fallbackArray.get(rand.nextInt(fallbackArray.size()));
+        }
+        return bucket.get(rand.nextInt(bucket.size()));
+    }
+
+    // Helper method to create a full Card object with all necessary fields, including a second API call for rarity
+    private Card fullCard(JsonNode cardNode, String setCode) {
+        // Create a new Card object and populate its fields
+        Card card = new Card(); 
+        card.setName(cardNode.path("name").asText("Unknown"));
+        card.setSetCode(setCode);
+
+        // Handle image URL - if the API doesn't provide a valid image, use a default placeholder
+        String imageBase = cardNode.path("image").asText("");
+        card.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+
+        // Handle rarity - if the API doesn't provide a rarity, default to "Common"
+        String cardId = cardNode.path("id").asText();
+        try {
+            JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+            card.setRarity(fullCardData.path("rarity").asText("Common"));
+        } catch (Exception e) {
+            card.setRarity("Unknown");
+        }
+        return card;
     }
 
     // Helper method to handle HTTP calls cleanly
