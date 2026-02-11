@@ -44,7 +44,11 @@ function App() {
                 return acc;
             }, {});
 
-            setCollection(Object.values(grouped));
+            const sortedCollection = Object.values(grouped).sort((a, b) => {
+                return b.count - a.count;
+            });
+
+            setCollection(sortedCollection);
             setView('binder');
         })
         .catch((error) => console.error("Error fetching collection:", error)
@@ -88,7 +92,8 @@ function App() {
                             boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
                             background: rarityStyle.background,
                             transition: 'transform 0.2s',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            position: 'relative'
                         }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}

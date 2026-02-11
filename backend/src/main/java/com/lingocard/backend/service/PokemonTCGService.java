@@ -6,7 +6,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jackson.autoconfigure.JacksonProperties.Json;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -15,12 +14,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.lingocard.backend.model.Card;
+import com.lingocard.backend.model.MasterCard;
 import com.lingocard.backend.repository.CardRepository;
+import com.lingocard.backend.repository.MasterCardRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class PokemonTCGService {
+
+    @Autowired
+    private MasterCardRepository masterCardRepository;
 
     @Autowired
     private CardRepository cardRepository;
@@ -36,62 +40,35 @@ public class PokemonTCGService {
      * @return          A list of 5 randomly selected cards from the specified set
      */
     public List<Card> generateBoosterPack(String setCode) {
-        List<Card> cachedCards = cardRepository.findAll().stream()
-            .filter(c -> setCode.equals(c.getSetCode()))
-            .collect(Collectors.toList());
+        List<MasterCard> libraryCards = masterCardRepository.findBySetCode(setCode);
 
-        if(cachedCards.isEmpty()) {
-            System.out.println("Caching set " + setCode + " for the first time...");
-            cacheSet(setCode);
-            cachedCards = cardRepository.findAll().stream()
-                .filter(c -> setCode.equals(c.getSetCode()))
-                .collect(Collectors.toList());
+        if(libraryCards.isEmpty()) {
+            System.out.println("📚 Set not found. Downloading " + setCode + " to library...");
+            cacheSetToLibrary(setCode);
+            libraryCards = masterCardRepository.findBySetCode(setCode);
         }
 
         // Bucket the Local data
-        List<Card> commons = new ArrayList<>();
-        List<Card> uncommons = new ArrayList<>();
-        List<Card> rarePlus = new ArrayList<>();
-
-        // Sort cards into buckets based on rarity
-        for (Card c : cachedCards) {
-            switch (c.getRarity().toLowerCase()) {
-                case "common":
-                    commons.add(c);
-                    break;
-                case "uncommon":
-                    uncommons.add(c);
-                    break;
-                default:
-                    rarePlus.add(c);
-            }
-        }
+        List<MasterCard> commons = libraryCards.stream().filter(c -> c.getRarity().equalsIgnoreCase("Common")).toList();
+        List<MasterCard> uncommons = libraryCards.stream().filter(c -> c.getRarity().equalsIgnoreCase("Uncommon")).toList();
+        List<MasterCard> rarePlus = libraryCards.stream().filter(c -> !c.getRarity().equalsIgnoreCase("Common") && !c.getRarity().equalsIgnoreCase("Uncommon")).toList();
 
         List<Card> boosterPack = new ArrayList<>();
         Random rand = new Random();
 
         // Pick 3 commons, 1 uncommon, and 1 rare+ card
-        if (!commons.isEmpty()) {
-            for (int i = 0; i < 3; i++) {
-                boosterPack.add(commons.get(rand.nextInt(commons.size())));
-            }
-        } 
-        if (!uncommons.isEmpty()) {
-            boosterPack.add(uncommons.get(rand.nextInt(uncommons.size())));
-        }
-        if (!rarePlus.isEmpty()) {
-            boosterPack.add(rarePlus.get(rand.nextInt(rarePlus.size())));
+        for(int i = 0; i < 3 && !commons.isEmpty(); i++) {
+            MasterCard selected = commons.get(rand.nextInt(commons.size()));
+            boosterPack.add(convertToUserCard(selected));
         }
 
-        // If we couldn't fill the pack properly, fill the rest with random cards from the set
-        while(boosterPack.size() < 5 && !cachedCards.isEmpty()) {
-            boosterPack.add(cachedCards.get(rand.nextInt(cachedCards.size())));
-        }
+        boosterPack.add(convertToUserCard(pickFromBucket(uncommons, libraryCards, rand)));
+        boosterPack.add(convertToUserCard(pickFromBucket(rarePlus, libraryCards, rand)));
 
         return boosterPack;
     }
 
-    private void cacheSet(String setCode) {
+    private void cacheSetToLibrary(String setCode) {
         String url = "https://api.tcgdex.net/v2/en/cards?set=" + setCode;
         try {
             JsonNode cardsArray = fetchFromApi(url);
@@ -99,15 +76,15 @@ public class PokemonTCGService {
                 String cardId = node.path("id").asText();
                 JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
 
-                Card card = new Card();
-                card.setName(node.path("name").asText("Unknown"));
-                card.setSetCode(setCode);
-                card.setRarity(fullCardData.path("rarity").asText("Unknown"));
+                MasterCard masterCard = new MasterCard();
+                masterCard.setName(node.path("name").asText("Unknown"));
+                masterCard.setSetCode(setCode);
+                masterCard.setRarity(fullCardData.path("rarity").asText("Unknown"));
 
                 String imageBase = node.path("image").asText("");
-                card.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+                masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
 
-                cardRepository.save(card);
+                masterCardRepository.save(masterCard);
             }
         } catch (Exception e) {
             System.out.println("⚠️ Caching failed: " + e.getMessage());
@@ -124,27 +101,19 @@ public class PokemonTCGService {
         return objectMapper.readTree(response.getBody());
     } 
 
-    // A robust backup pack with CORRECT images
-    private List<Card> getBackupPack() {
-        List<Card> backup = new ArrayList<>();
-        
-        // Add specific cards with valid URLs
-        backup.add(createBackupCard("Pikachu", "Common", "https://images.pokemontcg.io/base1/58.png"));
-        backup.add(createBackupCard("Charmander", "Common", "https://images.pokemontcg.io/base1/46.png"));
-        backup.add(createBackupCard("Squirtle", "Common", "https://images.pokemontcg.io/base1/63.png"));
-        backup.add(createBackupCard("Bulbasaur", "Common", "https://images.pokemontcg.io/base1/44.png"));
-        backup.add(createBackupCard("Mewtwo", "Rare Holo", "https://images.pokemontcg.io/base1/10.png"));
-
-        return backup;
+    private Card convertToUserCard(MasterCard masterCard) {
+        Card card = new Card();
+        card.setName(masterCard.getName());
+        card.setRarity(masterCard.getRarity());
+        card.setSetCode(masterCard.getSetCode());
+        card.setImageUrl(masterCard.getImageUrl());
+        return card;
     }
 
-    // Helper method to make the code above readable
-    private Card createBackupCard(String name, String rarity, String url) {
-        Card c = new Card();
-        c.setName(name);
-        c.setRarity(rarity);
-        c.setSetCode("backup");
-        c.setImageUrl(url);
-        return c;
+    private MasterCard pickFromBucket(List<MasterCard> bucket, List<MasterCard> fallback, Random rand) {
+        if (bucket.isEmpty()) {
+            return fallback.get(rand.nextInt(fallback.size()));
+        }
+        return bucket.get(rand.nextInt(bucket.size()));
     }
 }
