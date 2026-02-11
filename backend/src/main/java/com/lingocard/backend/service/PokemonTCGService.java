@@ -3,7 +3,10 @@ package com.lingocard.backend.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jackson.autoconfigure.JacksonProperties.Json;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -12,12 +15,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.lingocard.backend.model.Card;
-
+import com.lingocard.backend.repository.CardRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class PokemonTCGService {
+
+    @Autowired
+    private CardRepository cardRepository;
+
     // Base URL for the Pokemon TCG API
     private final String API_BASE_URL = "https://api.tcgdex.net/v2/en";
     private final RestTemplate restTemplate = new RestTemplate();
@@ -29,87 +36,82 @@ public class PokemonTCGService {
      * @return          A list of 5 randomly selected cards from the specified set
      */
     public List<Card> generateBoosterPack(String setCode) {
+        List<Card> cachedCards = cardRepository.findAll().stream()
+            .filter(c -> setCode.equals(c.getSetCode()))
+            .collect(Collectors.toList());
+
+        if(cachedCards.isEmpty()) {
+            System.out.println("Caching set " + setCode + " for the first time...");
+            cacheSet(setCode);
+            cachedCards = cardRepository.findAll().stream()
+                .filter(c -> setCode.equals(c.getSetCode()))
+                .collect(Collectors.toList());
+        }
+
+        // Bucket the Local data
+        List<Card> commons = new ArrayList<>();
+        List<Card> uncommons = new ArrayList<>();
+        List<Card> rarePlus = new ArrayList<>();
+
+        // Sort cards into buckets based on rarity
+        for (Card c : cachedCards) {
+            switch (c.getRarity().toLowerCase()) {
+                case "common":
+                    commons.add(c);
+                    break;
+                case "uncommon":
+                    uncommons.add(c);
+                    break;
+                default:
+                    rarePlus.add(c);
+            }
+        }
+
         List<Card> boosterPack = new ArrayList<>();
+        Random rand = new Random();
 
-        // Fetch cards from the specified set
-        String url = "https://api.tcgdex.net/v2/en/cards?set=" + setCode;
+        // Pick 3 commons, 1 uncommon, and 1 rare+ card
+        if (!commons.isEmpty()) {
+            for (int i = 0; i < 3; i++) {
+                boosterPack.add(commons.get(rand.nextInt(commons.size())));
+            }
+        } 
+        if (!uncommons.isEmpty()) {
+            boosterPack.add(uncommons.get(rand.nextInt(uncommons.size())));
+        }
+        if (!rarePlus.isEmpty()) {
+            boosterPack.add(rarePlus.get(rand.nextInt(rarePlus.size())));
+        }
 
-        // Make the API call and parse the response
-        try {
-            JsonNode cardsArray = fetchFromApi(url);
-
-            // Check if dataNode is an array and has elements
-            if(cardsArray.isArray() && cardsArray.size() > 0) {
-                List<JsonNode> commons = new ArrayList<>();
-                List<JsonNode> uncommons = new ArrayList<>();
-                List<JsonNode> rarePlus = new ArrayList<>();
-
-                for(JsonNode node : cardsArray) {
-                    String cardId = node.path("id").asText();
-                    JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
-                    String rarity = fullCardData.path("rarity").asText("Common").toLowerCase();
-
-                    // Bucket cards based on rarity, defaulting to "Common" if not provided
-                    if(rarity.contains("uncommon")) {
-                        uncommons.add(node);
-                    } else if(rarity.contains("common")) {
-                        commons.add(node);
-                    } else {
-                        rarePlus.add(node);
-                    }
-                }
-
-                // Debugging output to verify bucket sizes
-                System.out.println("Buckets -> C: " + commons.size() + " UC: " + uncommons.size() + " R+: " + rarePlus.size());
-
-                List<JsonNode> selectedNodes = new ArrayList<>();
-                selectedNodes.add(pickRandom(commons, cardsArray));
-                selectedNodes.add(pickRandom(commons, cardsArray));
-                selectedNodes.add(pickRandom(commons, cardsArray));
-                selectedNodes.add(pickRandom(uncommons, cardsArray));
-                selectedNodes.add(pickRandom(rarePlus, cardsArray));
-
-                for(JsonNode node : selectedNodes) {
-                    boosterPack.add(fullCard(node, setCode));
-                }
-            } 
-        } catch (Exception e) {
-            System.out.println("⚠️ API FAILED: " + e.getMessage());
-            return getBackupPack();
+        // If we couldn't fill the pack properly, fill the rest with random cards from the set
+        while(boosterPack.size() < 5 && !cachedCards.isEmpty()) {
+            boosterPack.add(cachedCards.get(rand.nextInt(cachedCards.size())));
         }
 
         return boosterPack;
     }
 
-    // Helper method to pick a random card from a bucket, or fallback to the full array if the bucket is empty
-    private JsonNode pickRandom(List<JsonNode> bucket, JsonNode fallbackArray) {
-        Random rand = new Random();
-        if(bucket.isEmpty()) {
-            return fallbackArray.get(rand.nextInt(fallbackArray.size()));
-        }
-        return bucket.get(rand.nextInt(bucket.size()));
-    }
-
-    // Helper method to create a full Card object with all necessary fields, including a second API call for rarity
-    private Card fullCard(JsonNode cardNode, String setCode) {
-        // Create a new Card object and populate its fields
-        Card card = new Card(); 
-        card.setName(cardNode.path("name").asText("Unknown"));
-        card.setSetCode(setCode);
-
-        // Handle image URL - if the API doesn't provide a valid image, use a default placeholder
-        String imageBase = cardNode.path("image").asText("");
-        card.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
-
-        // Handle rarity - if the API doesn't provide a rarity, default to "Common"
-        String cardId = cardNode.path("id").asText();
+    private void cacheSet(String setCode) {
+        String url = "https://api.tcgdex.net/v2/en/cards?set=" + setCode;
         try {
-            JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
-            card.setRarity(fullCardData.path("rarity").asText("Common"));
+            JsonNode cardsArray = fetchFromApi(url);
+            for(JsonNode node : cardsArray) {
+                String cardId = node.path("id").asText();
+                JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+
+                Card card = new Card();
+                card.setName(node.path("name").asText("Unknown"));
+                card.setSetCode(setCode);
+                card.setRarity(fullCardData.path("rarity").asText("Unknown"));
+
+                String imageBase = node.path("image").asText("");
+                card.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+
+                cardRepository.save(card);
+            }
         } catch (Exception e) {
-            card.setRarity("Unknown");
+            System.out.println("⚠️ Caching failed: " + e.getMessage());
         }
-        return card;
     }
 
     // Helper method to handle HTTP calls cleanly
