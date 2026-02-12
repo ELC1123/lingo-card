@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import './App.css';
+import Card from './components/Card';
+import { getCardNumber } from './utils/cardHelper'; // You still need this for sorting!
 
 function App() {
     const [pack, setPack] = useState([]); // State to hold the opened pack
@@ -8,99 +10,11 @@ function App() {
     const [view, setView] = useState('pack'); // 'pack' or 'binder'
     const [selectedSet, setSelectedSet] = useState(null); // State to track the selected set for filtering
 
-    const SetLogos = {
-        'me01': 'https://assets.tcgdex.net/en/me/me01/logo.png',           // mega evolution set
-
-        'swsh1': 'https://assets.tcgdex.net/en/swsh/swsh1/logo.png',       // sword and shield base set
-
-        'sv1': 'https://assets.tcgdex.net/en/sv/sv1/logo.png',             // scarlet and violet base set
-        // Add more sets here as you collect them!
-        'default': 'https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg'
-    }
-
-    // Function to determine card styling based on rarity
-    const getRarityStyle = (rarity) => {
-        const r = rarity ? rarity.toLowerCase() : '';
-
-        if(r.includes('hyper') || r.includes('secret') || r.includes('gold')) {
-             return { 
-                background: 'linear-gradient(135deg, #FFD700 0%, #FDB931 100%)', 
-                borderColor: '#DAA520', 
-                pillColor: '#B8860B', 
-                textColor: '#333',
-                metaColor: '#555' // Dark grey for Gold cards
-            };
-        }
-        
-        if(r.includes('special')) {
-             return { 
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
-                borderColor: '#f5576c', 
-                pillColor: '#c2185b', 
-                textColor: 'white', 
-                metaColor: '#ffe4e6'
-            };
-        }
-
-        if(r.includes('illustration') || r.includes('ultra')) {
-             return { 
-                background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', 
-                borderColor: '#ff6b6b', 
-                pillColor: '#ff6b6b', 
-                textColor: '#333',
-                metaColor: '#555'
-            };
-        }
-
-        // 3. DOUBLE RARE (The dark one)
-        if(r === 'double rare' || r.includes('double rare') || r.includes('ex') || r.includes('v') || r.includes('vmax')) {
-             return { 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-                borderColor: '#667eea', 
-                pillColor: '#5b21b6', 
-                textColor: 'white',
-                metaColor: '#ccc' // Light grey for readability on dark background
-            };
-        }
-
-        if(r.includes('rare') || r.includes('holo')) {
-             return { 
-                background: 'linear-gradient(135deg, #E0C3FC 0%, #8EC5FC 100%)', 
-                borderColor: '#6A5ACD', 
-                pillColor: '#6A5ACD', 
-                textColor: '#333',
-                metaColor: '#555'
-            };
-        }
-
-        if(r.includes('uncommon')) {
-             return { 
-                background: '#f0fdf4', 
-                borderColor: '#86efac', 
-                pillColor: '#166534', 
-                textColor: '#064e3b',
-                metaColor: '#166534'
-            };
-        }
-
-        return { 
-            background: 'white', 
-            borderColor: '#e5e7eb', 
-            pillColor: '#6b7280', 
-            textColor: '#333',
-            metaColor: '#888'
-        };
-    }
-
-    // Extract card number from image URL for display
-    const getCardNumber = (url) => {
-        try {
-            const parts = url.split('/');
-            const numStr = parts[parts.length - 2];
-            return parseInt(numStr.replace(/\D/g, '')) || 999;
-        } catch (e) {
-            return '??';
-        }
+    const setMetadata = {
+        'me01':  { logo: 'https://assets.tcgdex.net/en/me/me01/logo.png', total: 188 },          // mega evolution set
+        'swsh1': { logo: 'https://assets.tcgdex.net/en/swsh/swsh1/logo.png', total: 202 },
+        'sv1':   { logo: 'https://assets.tcgdex.net/en/sv/sv1/logo.png', total: 198 },
+        'default': { logo: 'https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg', total: 100 }
     }
 
     // Fetch a new pack from the backend
@@ -142,21 +56,33 @@ function App() {
     }
 
     // Group collection by set and count cards in each set
+    // Update this function in App.jsx
     const getSetsFromCollection = () => {
         const sets = {};
+        if (!Array.isArray(collection)) return [];
+
         collection.forEach(card => {
             const code = card.setCode;
+            const meta = setMetadata[code.toLowerCase()] || setMetadata['default'];
+
             if(!sets[code]) {
-                sets[code] = {
-                    code: code,
-                    count: 0,
-                    coverImage: SetLogos[code.toLowerCase()] || SetLogos['default'],
-                    isLogo: !!SetLogos[code.toLowerCase()]
+                sets[code] = { 
+                    code: code, 
+                    uniqueCards: new Set(), // Track unique card names here
+                    coverImage: meta.logo,
+                    totalSetSize: meta.total,
+                    isLogo: !!setMetadata[code.toLowerCase()] 
                 };
             }
-            sets[code].count += 1;
+            // Add card name to the Set (Sets automatically block duplicates!)
+            sets[code].uniqueCards.add(card.name);
         });
-        return Object.values(sets);
+
+        // Convert to array and format for display
+        return Object.values(sets).map(set => ({
+            ...set,
+            progress: set.uniqueCards.size // This is the final unique count
+        }));
     }
 
     // Fetch the user's collection from the backend
@@ -249,9 +175,9 @@ function App() {
                                 <h3 style = {{margin: '10px 0 5px 0', fontSize: '18px'}}>
                                     {set.code.toUpperCase()}
                                 </h3>
-                                <span style={{fontSize: '12px', color: '#888', background: '#f0f0f0', padding: '4px 8px', borderRadius: '10px'}}>
-                                    {set.count} Cards Owned
-                                </span>
+                                <div style={{color: '#aaa', fontSize: '14px', fontWeight: 'bold'}}>
+                                    Progress: <span style={{color: '#4caf50'}}>{set.progress}</span> / {set.totalSetSize}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -272,42 +198,12 @@ function App() {
 
                     <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
                         {getBinderCards().map((card, index) => {
-                            const rarityStyle = getRarityStyle(card.rarity);
-
                             return (
-                                <div key={index} style={{
-                                    border: `1px solid #ddd`, borderRadius: '12px', padding: '10px',
-                                    width: '150px', // Binder Size
-                                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)', background: rarityStyle.background,
-                                    position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center'
-                                }}>
-                                    <img src={card.imageUrl} style={{width: '100%', borderRadius: '8px'}} />
-                                    
-                                    <h3 style={{
-                                        margin: '8px 0 4px 0', fontSize: '13px', textAlign: 'center',
-                                        color: rarityStyle.textColor,
-                                        textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
-                                    }}>
-                                        {card.name}
-                                    </h3>
-
-                                    <div style={{fontSize: '10px', color: rarityStyle.metaColor, margin: '2px 0'}}>
-                                        {card.setCode.toUpperCase()} • #{getCardNumber(card.imageUrl)}
-                                    </div>
-
-                                    <div style={tagStyle(rarityStyle.pillColor)}>
-                                        {card.rarity}
-                                    </div>
-
-                                    {card.count > 0 && (
-                                        <div style={{
-                                            position: 'absolute', top: '-8px', right: '-8px',
-                                            background: '#333', color: 'white', borderRadius: '50%',
-                                            width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontWeight: 'bold', fontSize: '11px', border: '2px solid white'
-                                        }}>{card.count}</div>
-                                    )}
-                                </div>
+                                <Card 
+                                    key={index} 
+                                    card={card} 
+                                    width="150px" 
+                                />
                             )
                         })}
                     </div>
@@ -319,36 +215,13 @@ function App() {
             {view === 'pack' && (
                 <div style = {{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {pack.map((card, index) => {
-                        const rarityStyle = getRarityStyle(card.rarity);
-                        const isNew = !ownedCards.has(card.name);
                         return (
-                            <div key={index} style={{
-                                border: `4px solid ${rarityStyle.borderColor}`, borderRadius: '12px', padding: '10px',
-                                width: '200px', // Pack Size
-                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)', background: rarityStyle.background,
-                                position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                transition: 'transform 0.2s', cursor: 'pointer'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
-                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                {isNew && (
-                                    <div style={{
-                                        position: 'absolute', top: '10px', left: '-5px',
-                                        background: '#4caf50', color: 'white', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold',
-                                        borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 20
-                                    }}>NEW!</div>
-                                )}
-                                <img src={card.imageUrl} style={{width: '100%', borderRadius: '8px'}} />
-                                <h3 style={{
-                                    margin: '8px 0 4px 0', fontSize: '16px', textAlign: 'center',
-                                    color: rarityStyle.textColor,
-                                    textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
-                                }}>
-                                    {card.name}
-                                </h3>
-                                <div style={tagStyle(rarityStyle.pillColor)}>{card.rarity}</div>
-                            </div>
+                            <Card 
+                                key={index} 
+                                card={card} 
+                                isNew={!ownedCards.has(card.name)} 
+                                width="200px" 
+                            />
                         )
                     })}
                 </div>
@@ -367,18 +240,6 @@ const buttonStyle = (color) => ({
     borderRadius: '8px',
     fontWeight: 'bold',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-});
-
-const tagStyle = (color) => ({
-    display: 'inline-block',
-    padding: '4px 8px',
-    background: color,
-    color: 'white',
-    borderRadius: '12px',
-    fontSize: '10px',
-    fontWeight: 'bold',
-    letterSpacing: '0.5px',
-    marginTop: '4px'
 });
 
 export default App
