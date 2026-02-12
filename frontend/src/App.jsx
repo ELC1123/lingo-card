@@ -6,78 +6,89 @@ function App() {
     const [collection, setCollection] = useState([]); // State to hold the user's collection
     const [ownedCards, setOwnedCards] = useState(new Set()); // State to track owned card IDs for quick lookup
     const [view, setView] = useState('pack'); // 'pack' or 'binder'
+    const [selectedSet, setSelectedSet] = useState(null); // State to track the selected set for filtering
 
-    // Determine card border color based on rarity
-    // Determine colors based on rarity
+    const SetLogos = {
+        'me01': 'https://assets.tcgdex.net/en/me/me01/logo.png',           // mega evolution set
+
+        'swsh1': 'https://assets.tcgdex.net/en/swsh/swsh1/logo.png',       // sword and shield base set
+
+        'sv1': 'https://assets.tcgdex.net/en/sv/sv1/logo.png',             // scarlet and violet base set
+        // Add more sets here as you collect them!
+        'default': 'https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg'
+    }
+
+    // Function to determine card styling based on rarity
     const getRarityStyle = (rarity) => {
         const r = rarity ? rarity.toLowerCase() : '';
 
-        // 1. GOD TIER (Gold) - Dark text looks best on Gold
         if(r.includes('hyper') || r.includes('secret') || r.includes('gold')) {
              return { 
                 background: 'linear-gradient(135deg, #FFD700 0%, #FDB931 100%)', 
                 borderColor: '#DAA520', 
-                pillColor: '#B8860B',
-                textColor: '#333' // Keep Dark
+                pillColor: '#B8860B', 
+                textColor: '#333',
+                metaColor: '#555' // Dark grey for Gold cards
             };
         }
         
-        // 2. ART TIER (Pink) - Dark text
-        if(r.includes('illustration') || r.includes('special')) {
+        if(r.includes('special')) {
+             return { 
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+                borderColor: '#f5576c', 
+                pillColor: '#c2185b', 
+                textColor: 'white', 
+                metaColor: '#ffe4e6'
+            };
+        }
+
+        if(r.includes('illustration') || r.includes('ultra')) {
              return { 
                 background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', 
                 borderColor: '#ff6b6b', 
-                pillColor: '#ff6b6b',
-                textColor: '#333' // Keep Dark
+                pillColor: '#ff6b6b', 
+                textColor: '#333',
+                metaColor: '#555'
             };
         }
 
-        // 3. DOUBLE RARE TIER (Magenta/Blue) - NEEDS WHITE TEXT
-        if(r === 'double rare' || r.includes('double rare')) {
+        // 3. DOUBLE RARE (The dark one)
+        if(r === 'double rare' || r.includes('double rare') || r.includes('ex') || r.includes('v') || r.includes('vmax')) {
              return { 
-                background: 'linear-gradient(135deg, #FF00CC 0%, #333399 100%)', 
-                borderColor: '#FF00CC', 
-                pillColor: '#C71585',
-                textColor: 'white' // <--- FIX IS HERE
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                borderColor: '#667eea', 
+                pillColor: '#5b21b6', 
+                textColor: 'white',
+                metaColor: '#ccc' // Light grey for readability on dark background
             };
         }
 
-        // 4. ULTRA TIER (Silver) - Dark text
-        if(r.includes('ultra') || r.includes('ex') || r.includes('v') || r.includes('vmax')) {
-             return { 
-                background: 'linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%)', 
-                borderColor: '#a0a0a0', 
-                pillColor: '#777',
-                textColor: '#333'
-            };
-        }
-
-        // 5. RARE TIER (Purple) - Dark text
         if(r.includes('rare') || r.includes('holo')) {
              return { 
                 background: 'linear-gradient(135deg, #E0C3FC 0%, #8EC5FC 100%)', 
                 borderColor: '#6A5ACD', 
-                pillColor: '#6A5ACD',
-                textColor: '#333'
+                pillColor: '#6A5ACD', 
+                textColor: '#333',
+                metaColor: '#555'
             };
         }
 
-        // 6. UNCOMMON TIER - Dark text
         if(r.includes('uncommon')) {
              return { 
                 background: '#f0fdf4', 
                 borderColor: '#86efac', 
-                pillColor: '#166534',
-                textColor: '#064e3b' // Dark green text for better contrast
+                pillColor: '#166534', 
+                textColor: '#064e3b',
+                metaColor: '#166534'
             };
         }
 
-        // 7. COMMON - Dark text
         return { 
             background: 'white', 
             borderColor: '#e5e7eb', 
-            pillColor: '#6b7280',
-            textColor: '#333'
+            pillColor: '#6b7280', 
+            textColor: '#333',
+            metaColor: '#888'
         };
     }
 
@@ -112,51 +123,65 @@ function App() {
         )
     }
 
-    // Fetch the user's collection from the backend
-    const fetchCollection = () => {
+    // Fetch the user's collection from the backend and group by sets
+    const fetchSets = () => {
         fetch('http://localhost:8080/api/collection')
         .then((response) => response.json())
         .then((data) => {
-            // Group cards by name and set code, counting duplicates
-            const grouped = data.reduce((acc, card) => {
-                const key = `${card.setCode}-${card.name}`;
-                if(!acc[key]) {
-                    acc[key] = {...card, count: 1};
-                } else {
-                    acc[key].count += 1;
-                }
-                return acc;
-            }, {});
-
-            // Sort by set code and then by card number extracted from the image URL
-            const sortedCollection = Object.values(grouped).sort((a, b) => {
-                // extract card number from url
-                const getNumberFromURL = (url) => {
-                    try {
-                        const parts = url.split('/');
-                        const numStr = parts[parts.length - 2];
-                        return parseInt(numStr.replace(/\D/g, '')) || 999;
-                    } catch {
-                        return 999;
-                    }
-                };
-
-                // sort by set code first, then by card number
-                const numA = getNumberFromURL(a.imageUrl);
-                const numB = getNumberFromURL(b.imageUrl);
-                if (a.setCode !== b.setCode) {
-                    return a.setCode.localeCompare(b.setCode);
-                }
-
-                return numA - numB;
-            });
-
-            // Update state with sorted collection and switch to binder view
-            setCollection(sortedCollection);
-            setView('binder');
+            setCollection(data);
+            setView('sets');
         })
-        .catch((error) => console.error("Error fetching collection:", error)
+        .catch((error) => console.error("Error fetching sets:", error)
         )
+    }
+
+    // When a set is clicked, filter the collection to show only cards from that set
+    const viewSetBinder = (setCode) => {
+        setSelectedSet(setCode);
+        setView('binder');
+    }
+
+    // Group collection by set and count cards in each set
+    const getSetsFromCollection = () => {
+        const sets = {};
+        collection.forEach(card => {
+            const code = card.setCode;
+            if(!sets[code]) {
+                sets[code] = {
+                    code: code,
+                    count: 0,
+                    coverImage: SetLogos[code.toLowerCase()] || SetLogos['default'],
+                    isLogo: !!SetLogos[code.toLowerCase()]
+                };
+            }
+            sets[code].count += 1;
+        });
+        return Object.values(sets);
+    }
+
+    // Fetch the user's collection from the backend
+    const getBinderCards = () => {
+        if (!selectedSet) {
+            return [];
+        }
+
+        const setCards = collection.filter(card => card.setCode === selectedSet);
+
+        const grouped = setCards.reduce((acc, card) => {
+            const key = `${card.name}-${card.rarity}-${card.imageUrl}`;
+            if (!acc[key]) {
+                acc[key] = { ...card, count: 1 };
+            } else {
+                acc[key].count += 1;
+            }
+            return acc;
+        }, {});
+        
+        return Object.values(grouped).sort((a, b) => {
+            const numA = getCardNumber(a.imageUrl);
+            const numB = getCardNumber(b.imageUrl);
+            return typeof numA === 'number' ? numA - numB : 0;
+        });
     }
 
     return (
@@ -171,116 +196,163 @@ function App() {
                 <button onClick={openPack} style={buttonStyle('#ff5e5e')}>
                     Open Pack
                 </button>
-                <button onClick={fetchCollection} style={buttonStyle('#5e9cff')}>
-                    View Collection
+                <button onClick={fetchSets} style={buttonStyle('#5e9cff')}>
+                    My Collection
                 </button>
             </div>
 
-            {/* Header */}
-            {view === 'binder' && <h2>My Collection ({collection.length} Cards)</h2>}
+            {/* Sets View */}
+            {view === 'sets' && (
+                <div>
+                    <h2 style = {{color: 'white', marginBottom: '10px'}}>
+                        Select a Set
+                    </h2>
 
-            {/* Display the opened pack */}
-            <div style = {{
-                display: 'flex',
-                gap: '20px',
-                justifyContent: 'center',
-                flexWrap: 'wrap'
-            }}>
-                {(view === 'pack' ? pack : collection).map((card, index) => {
-                    const rarityStyle = getRarityStyle(card.rarity);
-                    const isBinder = view == 'binder';
-                    const cardWidth = isBinder ? '150px' : '200px';
-
-                    // Highlight new cards in the pack (those that have a count of 1, meaning they were just added to the collection)
-                    const isNew = view === 'pack' && !ownedCards.has(card.name);
-
-                    return (
-                        <div key={index} style={{
-                            border: `4px solid ${rarityStyle.borderColor}`,
-                            borderRadius: '8px',
-                            padding: '10px',
-                            width: cardWidth,
-                            boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
-                            background: rarityStyle.background,
-                            transition: 'transform 0.2s',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-
-                            {/* New Tag */}
-                            {isNew && (
+                    <div style = {{
+                        display: 'flex',
+                        gap: '20px',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                    }}>
+                        {getSetsFromCollection().map((set) => (
+                            <div key={set.code} 
+                                onClick={() => viewSetBinder(set.code)} 
+                                style={{
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '12px', 
+                                    padding: '15px',
+                                    width: '160px', 
+                                    cursor: 'pointer', 
+                                    background: '#2a2a2a',
+                                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)', 
+                                    transition: 'transform 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
                                 <div style = {{
-                                    position: 'absolute', 
-                                    top: '10px', 
-                                    left: '-5px',
-                                    background: '#4caf50', 
-                                    color: 'white',
-                                    padding: '2px 8px', 
-                                    fontSize: '10px', 
-                                    fontWeight: 'bold',
-                                    borderRadius: '4px', 
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                    zIndex: 20
+                                    height: '100px', 
+                                    width: '100%', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    marginBottom: '15px'
                                 }}>
-                                    NEW!
+                                    <img src={set.coverImage} alt={set.code} style={{
+                                        maxWidth: '100%', 
+                                        maxHeight: '100%', 
+                                        borderRadius: set.isLogo ? '0' : '6px', 
+                                        objectFit: 'contain',
+                                        filter: set.isLogo ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'none'
+                                    }} />
                                 </div>
-                            )}
-
-                            {/* Image */}
-                            <img src = {card.imageUrl} alt={card.name} style={{width: '100%', borderRadius: '8px'}} />
-
-                            {/* Card Name */}
-                            <h3 style={{
-                                margin: '8px 0 4px 0', 
-                                fontSize: isBinder ? '13px' : '16px', 
-                                color: rarityStyle.textColor, 
-                                textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
-                                textAlign: 'center'
-                            }}>
-                                {card.name}
-                            </h3>
-
-                            {/* Card Set and Number */}
-                            <div style={{fontSize: '11px', color: '#888', margin: '2px 0'}}>
-                                {card.setCode.toUpperCase()} • #{getCardNumber(card.imageUrl)}
+                                <h3 style = {{margin: '10px 0 5px 0', fontSize: '18px'}}>
+                                    {set.code.toUpperCase()}
+                                </h3>
+                                <span style={{fontSize: '12px', color: '#888', background: '#f0f0f0', padding: '4px 8px', borderRadius: '10px'}}>
+                                    {set.count} Cards Owned
+                                </span>
                             </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-                            {/* Rarity Tag */}
-                            <div style = {tagStyle(rarityStyle.pillColor)}>
-                                {card.rarity}
-                            </div>
+            {/* Binder View */}
+            {view === 'binder' && (
+                <div>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
+                        <button onClick={fetchSets} style={{...buttonStyle('#888'), padding: '5px 15px', fontSize: '12px'}}>
+                            ← Back to Sets
+                        </button>
+                        <h2 style={{color: 'white', margin: 0}}>
+                            {selectedSet.toUpperCase()} Collection
+                        </h2>
+                    </div>
 
-                            {/* Count Badge */}
-                            {card.count > 0 && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '-10px',
-                                    right: '-10px',
-                                    background: '#2196f3',
-                                    color: 'white',
-                                    borderRadius: '50%',
-                                    width: '30px',
-                                    height: '30px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 'bold',
-                                    fontSize: '14px',
-                                    border: '2px solid white'
+                    <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                        {getBinderCards().map((card, index) => {
+                            const rarityStyle = getRarityStyle(card.rarity);
+
+                            return (
+                                <div key={index} style={{
+                                    border: `1px solid #ddd`, borderRadius: '12px', padding: '10px',
+                                    width: '150px', // Binder Size
+                                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)', background: rarityStyle.background,
+                                    position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center'
                                 }}>
-                                    x{card.count}
+                                    <img src={card.imageUrl} style={{width: '100%', borderRadius: '8px'}} />
+                                    
+                                    <h3 style={{
+                                        margin: '8px 0 4px 0', fontSize: '13px', textAlign: 'center',
+                                        color: rarityStyle.textColor,
+                                        textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
+                                    }}>
+                                        {card.name}
+                                    </h3>
+
+                                    <div style={{fontSize: '10px', color: rarityStyle.metaColor, margin: '2px 0'}}>
+                                        {card.setCode.toUpperCase()} • #{getCardNumber(card.imageUrl)}
+                                    </div>
+
+                                    <div style={tagStyle(rarityStyle.pillColor)}>
+                                        {card.rarity}
+                                    </div>
+
+                                    {card.count > 0 && (
+                                        <div style={{
+                                            position: 'absolute', top: '-8px', right: '-8px',
+                                            background: '#333', color: 'white', borderRadius: '50%',
+                                            width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontWeight: 'bold', fontSize: '11px', border: '2px solid white'
+                                        }}>{card.count}</div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    )
-                })}
-            </div>
+                            )
+                        })}
+                    </div>
+                </div>
+                
+            )}
+                
+            {/* Pack View */}
+            {view === 'pack' && (
+                <div style = {{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                    {pack.map((card, index) => {
+                        const rarityStyle = getRarityStyle(card.rarity);
+                        const isNew = !ownedCards.has(card.name);
+                        return (
+                            <div key={index} style={{
+                                border: `4px solid ${rarityStyle.borderColor}`, borderRadius: '12px', padding: '10px',
+                                width: '200px', // Pack Size
+                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)', background: rarityStyle.background,
+                                position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                transition: 'transform 0.2s', cursor: 'pointer'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                {isNew && (
+                                    <div style={{
+                                        position: 'absolute', top: '10px', left: '-5px',
+                                        background: '#4caf50', color: 'white', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold',
+                                        borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 20
+                                    }}>NEW!</div>
+                                )}
+                                <img src={card.imageUrl} style={{width: '100%', borderRadius: '8px'}} />
+                                <h3 style={{
+                                    margin: '8px 0 4px 0', fontSize: '16px', textAlign: 'center',
+                                    color: rarityStyle.textColor,
+                                    textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
+                                }}>
+                                    {card.name}
+                                </h3>
+                                <div style={tagStyle(rarityStyle.pillColor)}>{card.rarity}</div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }
