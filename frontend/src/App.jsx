@@ -261,7 +261,7 @@ function App() {
             {/* Binder View */}
             {view === 'binder' && (
                 <div>
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
                         <button onClick={fetchSets} style={{...buttonStyle('#888'), padding: '5px 15px', fontSize: '12px'}}>
                             ← Back to Sets
                         </button>
