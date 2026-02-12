@@ -4,6 +4,7 @@ import './App.css';
 function App() {
     const [pack, setPack] = useState([]); // State to hold the opened pack
     const [collection, setCollection] = useState([]); // State to hold the user's collection
+    const [ownedCards, setOwnedCards] = useState(new Set()); // State to track owned card IDs for quick lookup
     const [view, setView] = useState('pack'); // 'pack' or 'binder'
 
     // Determine card border color based on rarity
@@ -11,56 +12,72 @@ function App() {
     const getRarityStyle = (rarity) => {
         const r = rarity ? rarity.toLowerCase() : '';
 
-        // 1. GOD TIER (Gold / Hyper / Secret)
+        // 1. GOD TIER (Gold) - Dark text looks best on Gold
         if(r.includes('hyper') || r.includes('secret') || r.includes('gold')) {
              return { 
                 background: 'linear-gradient(135deg, #FFD700 0%, #FDB931 100%)', 
                 borderColor: '#DAA520', 
-                pillColor: '#B8860B' 
+                pillColor: '#B8860B',
+                textColor: '#333' // Keep Dark
             };
         }
         
-        // 2. ART TIER (Illustration / Special Illustration)
-        if(r.includes('illustration') || r.includes('special') || r.includes('ultra rare')) {
+        // 2. ART TIER (Pink) - Dark text
+        if(r.includes('illustration') || r.includes('special')) {
              return { 
-                background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', // Soft Pink/Art gradient
+                background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', 
                 borderColor: '#ff6b6b', 
-                pillColor: '#ff6b6b' 
+                pillColor: '#ff6b6b',
+                textColor: '#333' // Keep Dark
             };
         }
 
-        // 3. ULTRA TIER (Ultra Rare / ex / V / VMAX) - Classic Silver
-        if(r.includes('ultra') || r.includes('double') || r.includes('ex')) {
+        // 3. DOUBLE RARE TIER (Magenta/Blue) - NEEDS WHITE TEXT
+        if(r === 'double rare' || r.includes('double rare')) {
              return { 
-                background: 'linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%)', // Silver sheen
-                borderColor: '#a0a0a0', 
-                pillColor: '#777' 
+                background: 'linear-gradient(135deg, #FF00CC 0%, #333399 100%)', 
+                borderColor: '#FF00CC', 
+                pillColor: '#C71585',
+                textColor: 'white' // <--- FIX IS HERE
             };
         }
 
-        // 4. RARE TIER (Rare / Holo) - Purple
+        // 4. ULTRA TIER (Silver) - Dark text
+        if(r.includes('ultra') || r.includes('ex') || r.includes('v') || r.includes('vmax')) {
+             return { 
+                background: 'linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%)', 
+                borderColor: '#a0a0a0', 
+                pillColor: '#777',
+                textColor: '#333'
+            };
+        }
+
+        // 5. RARE TIER (Purple) - Dark text
         if(r.includes('rare') || r.includes('holo')) {
              return { 
                 background: 'linear-gradient(135deg, #E0C3FC 0%, #8EC5FC 100%)', 
                 borderColor: '#6A5ACD', 
-                pillColor: '#6A5ACD' 
+                pillColor: '#6A5ACD',
+                textColor: '#333'
             };
         }
 
-        // 5. UNCOMMON TIER - Slate/Greenish
+        // 6. UNCOMMON TIER - Dark text
         if(r.includes('uncommon')) {
              return { 
-                background: '#f0fdf4', // Very light green tint
+                background: '#f0fdf4', 
                 borderColor: '#86efac', 
-                pillColor: '#166534' 
+                pillColor: '#166534',
+                textColor: '#064e3b' // Dark green text for better contrast
             };
         }
 
-        // 6. COMMON - White/Grey
+        // 7. COMMON - Dark text
         return { 
             background: 'white', 
             borderColor: '#e5e7eb', 
-            pillColor: '#6b7280' 
+            pillColor: '#6b7280',
+            textColor: '#333'
         };
     }
 
@@ -77,12 +94,19 @@ function App() {
 
     // Fetch a new pack from the backend
     const openPack = () => {
-        fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'})
+        fetch('http://localhost:8080/api/collection')
+        .then((res) => res.json())
+        .then(currentCollection => {
+            // Create a set of owned card names for quick lookup
+            const owned = new Set(currentCollection.map(c => c.name));
+            setOwnedCards(owned);
+            return fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'});
+        })
         .then((response) => response.json())
         .then((data) => {
             setPack(data);
             setView('pack');
-            setCollection([]); // Clear collection view when opening a new pack
+            // setCollection([]); // Clear collection view when opening a new pack
         })   
         .catch((error) => console.error("Error opening pack:", error)
         )
@@ -168,7 +192,7 @@ function App() {
                     const cardWidth = isBinder ? '150px' : '200px';
 
                     // Highlight new cards in the pack (those that have a count of 1, meaning they were just added to the collection)
-                    const isNew = view === 'pack' && card.count === 1;
+                    const isNew = view === 'pack' && !ownedCards.has(card.name);
 
                     return (
                         <div key={index} style={{
@@ -212,7 +236,13 @@ function App() {
                             <img src = {card.imageUrl} alt={card.name} style={{width: '100%', borderRadius: '8px'}} />
 
                             {/* Card Name */}
-                            <h3 style={{margin: '5px 0 2px 0', fontSize: '14px', color: '#333'}}>
+                            <h3 style={{
+                                margin: '8px 0 4px 0', 
+                                fontSize: isBinder ? '13px' : '16px', 
+                                color: rarityStyle.textColor, 
+                                textShadow: rarityStyle.textColor === 'white' ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
+                                textAlign: 'center'
+                            }}>
                                 {card.name}
                             </h3>
 
