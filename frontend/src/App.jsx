@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import './App.css';
-import Card from './components/Card';
-import { getCardNumber } from './utils/cardHelper'; // You still need this for sorting!
-
-const SET_METADATA = {
-        'me01':  { logo: 'https://assets.tcgdex.net/en/me/me01/logo.png', total: 188 },          // mega evolution set
-        'swsh1': { logo: 'https://assets.tcgdex.net/en/swsh/swsh1/logo.png', total: 202 },
-        'sv1':   { logo: 'https://assets.tcgdex.net/en/sv/sv1/logo.png', total: 198 },
-        'default': { logo: 'https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg', total: 100 }
-    }
+import PackView from './views/PackView';
+import SetsView from './views/SetsView';
+import BinderView from './views/BinderView';
 
 function App() {
     const [pack, setPack] = useState([]); // State to hold the opened pack
@@ -76,61 +70,7 @@ function App() {
         setSelectedSet(setCode);
         setView('binder');
     }, []);
-
-    // Memoized function to get unique sets from the collection with progress info
-    const setGroups = useMemo(() => {
-        const sets = {};
-        
-        if(!Array.isArray(collection)) {
-            return [];
-        }
-
-        collection.forEach(card => {
-            const code = card.setCode;
-            const meta = SET_METADATA[code.toLowerCase()] || SET_METADATA['default'];
-
-            if(!sets[code]) {
-                sets[code] = {
-                    code: code,
-                    uniqueCards: new Set(),
-                    coverImage: meta.logo,
-                    totalSetSize: meta.total,
-                    isLogo: !!SET_METADATA[code.toLowerCase()]
-                };
-            }
-            sets[code].uniqueCards.add(card.name);
-        });
-
-        return Object.values(sets).map(set => ({
-            ...set,
-            progress: set.uniqueCards.size
-        }));
-    }, [collection]);
-
-    // Memoized function to get cards for the binder view, grouped and sorted
-    const binderCards = useMemo(() => {
-        if (!selectedSet) {
-            return [];
-        }
-
-        const setCards = collection.filter(card => card.setCode === selectedSet);
-
-        const grouped = setCards.reduce((acc, card) => {
-            const key = `${card.name}-${card.rarity}-${card.imageUrl}`;
-            if (!acc[key]) {
-                acc[key] = { ...card, count: 1 };
-            } else {
-                acc[key].count += 1;
-            }
-            return acc;
-        }, {});
-
-        return Object.values(grouped).sort((a, b) => {
-            const numA = getCardNumber(a.imageUrl);
-            const numB = getCardNumber(b.imageUrl);
-            return typeof numA === 'number' ? numA - numB : 0;
-        });
-    }, [collection, selectedSet]);
+    
 
     return (
         <div style = {{
@@ -154,73 +94,26 @@ function App() {
             </div>
 
             {view === 'sets' && (
-                <div>
-                    <h2 style={{color: 'white', marginBottom: '10px'}}>Select a Set</h2>
-                    <div style={{display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
-                        {setGroups.map((set) => (
-                            <div key = {set.code}
-                                onClick={() => handleViewSetBinder(set.code)}
-                                style={{
-                                    border: '1px solid #ddd', borderRadius: '12px', padding: '15px',
-                                    width: '160px', cursor: 'pointer', background: '#2a2a2a',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)', transition: 'transform 0.2s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                <div style={{height: '100px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px'}}>
-                                    <img src={set.coverImage} alt={set.code} style={{
-                                        maxWidth: '100%', maxHeight: '100%', borderRadius: set.isLogo ? '0' : '6px', 
-                                        objectFit: 'contain', filter: set.isLogo ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'none'
-                                    }} />
-                                </div>
-                                <h3 style={{margin: '10px 0 5px 0', fontSize:'18px'}}>{set.code}</h3>
-                                <div style={{color: '#aaa', fontSize: '14px', fontWeight: 'bold'}}>
-                                    Progress: <span style={{color: '#4caf50'}}>{set.progress}</span> / {set.totalSetSize}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <SetsView 
+                    collection={collection} 
+                    onSelectSet={handleViewSetBinder}
+                />
             )}
 
             {view === 'binder' && (
-                <div>
-                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
-                        <button onClick={handleViewSets} style={{...buttonStyle('#888'), padding: '5px 15px', fontSize: '12px'}}>
-                            ← Back to Sets
-                        </button>
-                        <h2 style={{color: 'white', margin: 0}}>{selectedSet.toUpperCase()} Collection</h2>
-                    </div>
-                    <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
-                        {binderCards.map((card, index) => (
-                            <Card 
-                                key={`${card.name}-${index}`} 
-                                card={card} 
-                                width="150px" 
-                            />
-                        ))}
-                    </div>
-                </div>
+                <BinderView
+                    collection={collection}
+                    selectedSet={selectedSet}
+                    onBack={handleViewSets}
+                />
             )}
 
             {/* Pack View */}
             {view === 'pack' && (
-                <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
-                    {pack.map((card, index) => {
-                        const uniqueKey = `${card.name}-${card.rarity}-${card.imageUrl}`;
-                        const isNew = !ownedCards.has(uniqueKey);
-
-                        return (
-                            <Card 
-                                key={index} 
-                                card={card} 
-                                isNew={isNew} 
-                                width="200px" 
-                            />
-                        );
-                    })}
-                </div>
+                <PackView 
+                    pack={pack} 
+                    ownedCards={ownedCards} 
+                />
             )}
         </div>
     )
