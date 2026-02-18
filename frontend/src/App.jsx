@@ -3,6 +3,7 @@ import './App.css';
 import PackView from './views/PackView';
 import SetsView from './views/SetsView';
 import BinderView from './views/BinderView';
+import StudyView from './views/StudyView';
 
 function App() {
     const [pack, setPack] = useState([]); // State to hold the opened pack
@@ -91,6 +92,9 @@ function App() {
                 <button onClick={handleViewSets} style={buttonStyle('#5e9cff')} disabled={loading}>
                     My Collection
                 </button>
+                <button onClick={() => setView('study')} style={buttonStyle('#4caf50')} disabled={loading}>
+                    Study HSK 1
+                </button>
             </div>
 
             {view === 'sets' && (
@@ -115,6 +119,12 @@ function App() {
                     ownedCards={ownedCards} 
                 />
             )}
+
+            {/* Study View */}
+            {view === 'study' && (
+                <StudyView />
+            )}
+
         </div>
     )
 }
