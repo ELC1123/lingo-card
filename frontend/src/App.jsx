@@ -11,6 +11,7 @@ function App() {
     const [view, setView] = useState('pack'); // 'pack' or 'binder'
     const [selectedSet, setSelectedSet] = useState(false); // State to track the selected set for filtering
     const [loading, setLoading] = useState(false); // State to track loading status
+    const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set()); // Track cards owned before opening pack
 
     // State to track owned cards for "NEW!" badge logic
     const ownedCards = useMemo(() => {
@@ -41,24 +42,31 @@ function App() {
 
     // Memoized function to extract unique sets from the collection
     const handleOpenPack = useCallback(() => {
+        // Save the current owned cards BEFORE opening the pack
+        setPreviousOwnedCards(ownedCards);
         setLoading(true);
-        fetch('http://localhost:8080/api/collection')
-            .then((res) => res.json())
-            .then(currentCollection => {
-                setCollection(currentCollection);
-                return fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'});
-            })
+        fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'})
             .then((response) => response.json())
             .then((data) => {
                 setPack(data);
                 setView('pack');
-                setLoading(false);
+                // Refresh collection to sync owned cards
+                fetch('http://localhost:8080/api/collection')
+                    .then((res) => res.json())
+                    .then((collectionData) => {
+                        setCollection(collectionData);
+                        setLoading(false);
+                    })
+                    .catch((error) => {
+                        console.error("Error refreshing collection:", error);
+                        setLoading(false);
+                    });
             })
             .catch((error) => {
                 console.error("Error opening pack:", error);
                 setLoading(false);
             });
-    }, []);
+    }, [ownedCards]);
 
     // Memoized function to extract unique sets from the collection
     const handleViewSets = useCallback(() => {
@@ -116,7 +124,7 @@ function App() {
             {view === 'pack' && (
                 <PackView 
                     pack={pack} 
-                    ownedCards={ownedCards} 
+                    ownedCards={previousOwnedCards} 
                 />
             )}
 

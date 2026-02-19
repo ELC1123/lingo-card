@@ -23,6 +23,21 @@ const StudyView = () => {
         }, 150);
     }
 
+    const faceStyle = {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        backfaceVisibility: 'hidden',
+        borderRadius: '15px',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        boxSizing: 'border-box'
+    }
+
     return (
         <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -35,6 +50,7 @@ const StudyView = () => {
                 Card {currentIndex + 1} / {HSK1_DATA.length}
             </div>
 
+            {/* Flip Card Container */}
             <div
                 onClick={() => setIsFlipped(!isFlipped)}
                 style={{
@@ -48,11 +64,7 @@ const StudyView = () => {
                     transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
                 }}>
                     <div style={{
-                        position: 'absolute', width: '100%', height: '100%',
-                        backfaceVisibility: 'hidden', // Hides this side when flipped
-                        backgroundColor: 'white', borderRadius: '15px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                        ...faceStyle, backgroundColor: 'white',
                     }}>
                         <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>
                             {currentCard.hanzi}
@@ -63,13 +75,9 @@ const StudyView = () => {
                     </div>
 
                     <div style={{
-                        position: 'absolute', width: '100%', height: '100%',
-                        backfaceVisibility: 'hidden',
-                        backgroundColor: '#f8f9fa', borderRadius: '15px',
-                        transform: 'rotateY(180deg)', // Initially rotated away
-                        display: 'flex', flexDirection: 'column', 
-                        alignItems: 'center', justifyContent: 'center', padding: '20px',
-                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                        ...faceStyle,
+                        backgroundColor: '#f8f9fa',
+                        transform: 'rotateY(180deg)',
                     }}>
                         <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>
                             {currentCard.hanzi}
