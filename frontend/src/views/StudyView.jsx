@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HSK1_DATA } from '../data/hsk1data';
 
-const StudyView = () => {
+const StudyView = ({onEarnCoins}) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -9,6 +9,7 @@ const StudyView = () => {
 
     // Added a flip animation for better UX
     const handleNext = () => {
+        onEarnCoins(10); // Earn coins for studying
         setIsFlipped(false);
         setTimeout(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % HSK1_DATA.length);
