@@ -17,6 +17,7 @@ const Navbar = ({ coins, setView, currentView}) => {
                     <NavButton label="Open Packs" active={currentView === 'pack'} onClick={() => setView('pack')} />
                     <NavButton label="Collection" active={currentView === 'sets' || currentView === 'binder'} onClick={() => setView('sets')} />
                     <NavButton label="Study HSK" active={currentView === 'study'} onClick={() => setView('study')} />
+                    <NavButton label="Quiz" active={currentView === 'quiz'} onClick={() => setView('quiz')} />
                 </div>
             </div>
 

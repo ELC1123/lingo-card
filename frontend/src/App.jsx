@@ -5,6 +5,7 @@ import SetsView from './views/SetsView';
 import BinderView from './views/BinderView';
 import StudyView from './views/StudyView';
 import Navbar from "./components/Navbar";
+import QuizView from "./views/QuizView";
 
 function App() {
     const [pack, setPack] = useState([]); // State to hold the opened pack
@@ -195,6 +196,16 @@ function App() {
                             <h2 style={{ margin: 0 }}>HSK 1 Study Session</h2>
                         </div>
                         <StudyView onEarnCoins={handleEarnCoins} />
+                    </div>
+                )}
+
+                {/* Quiz View */}
+                {view === 'quiz' && (
+                    <div style={{ width: '100%' }}>
+                        <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
+                            <h2 style={{ margin: 0 }}>Quiz</h2>
+                        </div>
+                        <QuizView onEarnCoins={handleEarnCoins} />
                     </div>
                 )}
             </div>
