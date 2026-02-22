@@ -44,7 +44,7 @@ const BinderView = ({ collection, selectedSet, onBack }) => {
                 <div style={{justifyContent: 'center', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
                     {binderCards.map((card, index) => (
                         <Card 
-                            key={`${card.name}-${index}`} 
+                            key={card.id} 
                             card={card} 
                             width="150px" 
                         />

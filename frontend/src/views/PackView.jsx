@@ -9,7 +9,7 @@ const PackView = ({ pack, ownedCards }) => {
 
                 return (
                     <Card 
-                        key={index} 
+                        key={card.id} 
                         card={card} 
                         isNew={isNew} 
                         width="200px" 
