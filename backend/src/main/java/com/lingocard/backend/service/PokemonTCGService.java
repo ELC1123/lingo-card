@@ -17,22 +17,27 @@ import com.lingocard.backend.model.Card;
 import com.lingocard.backend.model.MasterCard;
 import com.lingocard.backend.repository.CardRepository;
 import com.lingocard.backend.repository.MasterCardRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class PokemonTCGService {
 
-    @Autowired
-    private MasterCardRepository masterCardRepository;
+    private final MasterCardRepository masterCardRepository;
 
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
 
     // Base URL for the Pokemon TCG API
     private final String API_BASE_URL = "https://api.tcgdex.net/v2/en";
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Random random = new Random();
 
     /**
      * Generates a booster pack of 5 random cards from the specified set.
@@ -43,7 +48,7 @@ public class PokemonTCGService {
         List<MasterCard> libraryCards = masterCardRepository.findBySetCode(setCode);
 
         if(libraryCards.isEmpty()) {
-            System.out.println("📚 Set not found. Downloading " + setCode + " to library...");
+            log.info("📚 Set not found. Downloading " + setCode + " to library...");
             cacheSetToLibrary(setCode);
             libraryCards = masterCardRepository.findBySetCode(setCode);
         }
@@ -72,22 +77,31 @@ public class PokemonTCGService {
         String url = "https://api.tcgdex.net/v2/en/cards?set=" + setCode;
         try {
             JsonNode cardsArray = fetchFromApi(url);
+
+            List<MasterCard> batchToSave = new ArrayList<>();
+
             for(JsonNode node : cardsArray) {
-                String cardId = node.path("id").asText();
-                JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+                try {
+                    String cardId = node.path("id").asText();
+                    JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
 
-                MasterCard masterCard = new MasterCard();
-                masterCard.setName(node.path("name").asText("Unknown"));
-                masterCard.setSetCode(setCode);
-                masterCard.setRarity(fullCardData.path("rarity").asText("Unknown"));
+                    MasterCard masterCard = new MasterCard();
+                    masterCard.setName(node.path("name").asText("Unknown"));
+                    masterCard.setSetCode(setCode);
+                    masterCard.setRarity(fullCardData.path("rarity").asText("Unknown"));
 
-                String imageBase = node.path("image").asText("");
-                masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+                    String imageBase = node.path("image").asText("");
+                    masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
 
-                masterCardRepository.save(masterCard);
+                    batchToSave.add(masterCard);
+                } catch (Exception e) {
+                    log.warn("⚠️ Failed to fetch details for card ID: {}", node.path("id").asText());
+                }
+                masterCardRepository.saveAll(batchToSave);
+                log.info("✅ Successfully cached {} cards for set {}", batchToSave.size(), setCode);
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Caching failed: " + e.getMessage());
+            log.error("❌ Caching failed for set {}: {}", setCode, e.getMessage());
         }
     }
 

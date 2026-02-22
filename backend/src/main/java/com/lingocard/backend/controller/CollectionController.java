@@ -11,13 +11,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.lingocard.backend.model.Card;
 import com.lingocard.backend.repository.CardRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @CrossOrigin(origins="http://localhost:5173") // Allow CORS for frontend running on this origin
 @RequestMapping("/api/collection")
+@RequiredArgsConstructor
 public class CollectionController {
     
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
 
     @GetMapping
     public List<Card> getCollection() {

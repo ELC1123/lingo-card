@@ -13,16 +13,17 @@ import com.lingocard.backend.model.Card;
 import com.lingocard.backend.repository.CardRepository;
 import com.lingocard.backend.service.PokemonTCGService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @CrossOrigin(origins="http://localhost:5173") // Allow CORS for frontend running on this origin
 @RequestMapping("/api/packs")
+@RequiredArgsConstructor
 public class PackController {
 
-    @Autowired
-    private PokemonTCGService pokemonTCGService;
+    private final PokemonTCGService pokemonTCGService;
 
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
 
     @PostMapping("/open-pack")
     public List<Card> openPack(@RequestParam(defaultValue = "me01") String set) {
