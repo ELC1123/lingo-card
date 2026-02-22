@@ -13,7 +13,14 @@ function App() {
     const [selectedSet, setSelectedSet] = useState(false); // State to track the selected set for filtering
     const [loading, setLoading] = useState(false); // State to track loading status
     const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set()); // Track cards owned before opening pack
-    const [coins, setCoins] = useState(0); // State to track user's coins
+    const [coins, setCoins] = useState(() => {
+        const savedCoins = localStorage.getItem('coins');
+        return savedCoins != null ? parseInt(savedCoins, 10) : 0;
+    }); // State to track user's coins
+
+    useEffect(() => {
+        localStorage.setItem('coins', coins);
+    }, [coins]);
 
     // State to track owned cards for "NEW!" badge logic
     const ownedCards = useMemo(() => {
