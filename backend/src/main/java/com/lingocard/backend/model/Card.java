@@ -6,15 +6,28 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
 
-@Entity     // JPA annotation to mark this class as a database entity
-@Data       // Lombok annotation to generate getters, setters, toString, equals, and hashCode methods
+/**
+ * Simplified Card entity used to represent a user's owned card.
+ *
+ * Note: This entity is intentionally minimal — additional fields (owner, acquiredAt, etc.)
+ * can be added later as requirements grow.
+ */
+@Entity
+@Data
 public class Card {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;            // Auto-incrementing ID
+    private Long id; // Primary key (auto-generated)
 
-    private String name;        // name of card
-    private String rarity;      // rarity of card (e.g., C, U, R, RR, UR, IR, SIR, HR, PROMO)
-    private String setCode;     // code of the set this card belongs to
-    private String imageUrl;    // URL to the card's image
+    // Human-readable name of the card (e.g., "Pikachu")
+    private String name;
+
+    // Rarity string coming from the master data (e.g., "Common", "Rare", "Holo")
+    private String rarity;
+
+    // Set code this card belongs to (used for linking to set metadata)
+    private String setCode;
+
+    // URL to an image asset for the card. Be careful validating external URLs in production.
+    private String imageUrl;
 }

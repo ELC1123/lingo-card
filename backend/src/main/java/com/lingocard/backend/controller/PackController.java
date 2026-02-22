@@ -2,7 +2,6 @@ package com.lingocard.backend.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,20 +14,35 @@ import com.lingocard.backend.service.PokemonTCGService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Controller responsible for pack-related endpoints.
+ *
+ * Exposes an endpoint to "open" a booster pack which uses the service to generate cards
+ * and stores the resulting cards in the user's collection (database).
+ */
 @RestController
-@CrossOrigin(origins="http://localhost:5173") // Allow CORS for frontend running on this origin
+@CrossOrigin(origins="http://localhost:5173") // Allow CORS for the local frontend during development
 @RequestMapping("/api/packs")
 @RequiredArgsConstructor
 public class PackController {
 
+    // Service used to generate booster pack contents
     private final PokemonTCGService pokemonTCGService;
 
+    // Repository to persist cards into the collection table
     private final CardRepository cardRepository;
 
+    /**
+     * Opens a booster pack from the specified set and saves the pulled cards.
+     * @param set set code to open (defaults to 'me01')
+     * @return list of saved `Card` entities representing the opened pack
+     */
     @PostMapping("/open-pack")
     public List<Card> openPack(@RequestParam(defaultValue = "me01") String set) {
-        // sv8 = surging sparks
+        // Use the service to generate a pack (business logic encapsulated in the service layer)
         List<Card> cards = pokemonTCGService.generateBoosterPack(set);
-        return cardRepository.saveAll(cards); // Save generated cards to the database and return them
+
+        // Persist generated cards and return persisted entities to the client
+        return cardRepository.saveAll(cards);
     }
 }
