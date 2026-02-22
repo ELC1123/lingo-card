@@ -41,7 +41,7 @@ const StudyView = ({onEarnCoins}) => {
 
     return (
         // Aligned top-left for desktop
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
             
             <div style={{color: '#888', marginBottom: '20px', fontSize: '18px'}}>
                 Card {currentIndex + 1} / {HSK1_DATA.length}
