@@ -30,7 +30,8 @@ const BinderView = ({ collection, selectedSet, onBack }) => {
 
     return (
         <div>
-            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', 
+                justifyContent: 'center', gap: '10px', marginBottom: '20px', paddingTop: '20px'}}>
                 <button onClick={onBack} style={{...buttonStyle('#888'), padding: '5px 15px', fontSize: '12px'}}>
                     ← Back to Sets
                 </button>
@@ -40,7 +41,7 @@ const BinderView = ({ collection, selectedSet, onBack }) => {
             {binderCards.length === 0 ? (
                 <div style={{color: '#aaa', fontSize: '16px'}}>No cards from this set in your collection yet.</div>
             ) : (
-                <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                <div style={{justifyContent: 'flex-start', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
                     {binderCards.map((card, index) => (
                         <Card 
                             key={`${card.name}-${index}`} 

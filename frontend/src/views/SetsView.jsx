@@ -30,7 +30,7 @@ const SetsView = ({ collection, onSelectSet }) => {
     return (
         <div>
             <h2 style={{color: 'white', marginBottom: '10px'}}>Select a Set</h2>
-            <div style={{display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
+            <div style={{justifyContent: 'flex-start', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
                 {setGroups.map((set) => (
                     <div key = {set.code}
                         onClick={() => onSelectSet(set.code)}

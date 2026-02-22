@@ -97,106 +97,114 @@ function App() {
     
 
     return (
-        <div style = {{ minHeight: '100vh', backgroundColor: '#121212'}}>
+        <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#121212' }}>
+            
             {/* Navbar */}
             <Navbar coins={coins} setView={setView} currentView={view} />
 
-            <div style={{padding: '20px', maxWidth: '1200px', margin: '0 auto', textAlign: 'center'}}>
-                {/* Home View */}
+            {/* Main Content Area */}
+            <div style={{ padding: '0 50px 50px 50px', width: '100%' }}>
+                
+                {/* Dashboard / Home View */}
                 {view === 'home' && (
-                    <div style={{marginTop: '50px', color: 'white'}}>
-                        <h1>Welcome to Lingo Card Alpha!</h1>
-                        <p style={{ fontSize: '18px', color: '#aaa' }}>Study Mandarin. Earn Packs. Collect 'em all.</p>
-                    
-                        <div style={{display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '40px'}}>
-                            <div style={statBoxStyle}>
-                                <h2>{collection.length}</h2>
-                                <p>Cards Collected</p>
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', 
+                            paddingBottom: '30px', marginBottom: '30px', paddingTop: '20px' }}>
+                            {/* Left Side Info */}
+                            <div>
+                                <h1 style={{fontSize: '48px', margin: '0 0 10px 0'}}>Welcome!</h1>
+                                <p style={{ fontSize: '18px', color: '#aaa', margin: 0 }}>Study Mandarin. Earn Packs. Master your collection.</p>
+                                
+                                <button
+                                    onClick={() => setView('study')}
+                                    style={{
+                                        marginTop: '30px', padding: '12px 30px', fontSize: '18px', 
+                                        backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+                                    }}
+                                >
+                                    Jump to Study →
+                                </button>
                             </div>
-                            <div style={statBoxStyle}>
-                                <h2>{coins}</h2>
-                                <p>Coins</p>
+                            
+                            {/* Right Side Stats */}
+                            <div style={{ display: 'flex', gap: '20px' }}>
+                                <div style={statBoxStyle}>
+                                    <h2 style={{fontSize: '40px', margin: 0, color: '#5e9cff'}}>{collection.length}</h2>
+                                    <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Total Cards</p>
+                                </div>
+                                <div style={statBoxStyle}>
+                                    <h2 style={{fontSize: '40px', margin: 0, color: '#FFD700'}}>{coins}</h2>
+                                    <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Available Coins</p>
+                                </div>
                             </div>
                         </div>
-
-                        <button
-                            onClick={() => setView('study')}
-                            style={{
-                                marginTop: '40px', padding: '15px 40px', fontSize: '20px', 
-                                backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '30px', cursor: 'pointer'
-                            }}
-                        >
-                            Start Studying Now!
-                        </button>
                     </div>
                 )}
 
                 {/* Sets View */}
                 {view === 'sets' && (
-                    <SetsView 
-                        collection={collection} 
-                        onSelectSet={handleViewSetBinder}
-                    />
+                    <div style={{ width: '100%' }}>
+                        <SetsView collection={collection} onSelectSet={handleViewSetBinder} />
+                    </div>
                 )}
 
                 {/* Binder View */}
                 {view === 'binder' && (
-                    <BinderView
-                        collection={collection}
-                        selectedSet={selectedSet}
-                        onBack={handleViewSets}
-                    />
+                    <div style={{ width: '100%' }}>
+                        <BinderView collection={collection} selectedSet={selectedSet} onBack={handleViewSets} />
+                    </div>
                 )}
 
                 {/* Pack View */}
                 {view === 'pack' && (
-                    <div>
-                        <div style={{marginBottom: '20px'}}>
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                            marginBottom: '30px', borderBottom: '1px solid #333', paddingBottom: '20px', paddingTop: '20px'}}>
+                            <h2 style={{ margin: 0 }}>Booster Packs</h2>
                             <button 
                                 onClick={handleOpenPack} 
                                 disabled={loading || coins < 100}
                                 style={{
-                                    ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#555'),
+                                    ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#333'),
                                     cursor: coins >= 100 ? 'pointer' : 'not-allowed'
                                 }}
                             >
-                                {loading ? 'Opening...' : `Open Another Pack (100 💰)`}
+                                {loading ? 'Opening...' : `Open Pack (100 💰)`}
                             </button>
                         </div>
-                        <PackView 
-                            pack={pack} 
-                            ownedCards={previousOwnedCards} 
-                        />
+                        
+                        {pack.length === 0 ? (
+                            <div style={{ color: '#555', fontSize: '18px' }}>Ready to pull? Buy a pack above.</div>
+                        ) : (
+                            <PackView pack={pack} ownedCards={previousOwnedCards} />
+                        )}
                     </div>
                 )}
 
                 {/* Study View */}
                 {view === 'study' && (
-                    <StudyView 
-                        onEarnCoins={handleEarnCoins}
-                    />
+                    <div style={{ width: '100%' }}>
+                        <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
+                            <h2 style={{ margin: 0 }}>HSK 1 Study Session</h2>
+                        </div>
+                        <StudyView onEarnCoins={handleEarnCoins} />
+                    </div>
                 )}
             </div>
         </div>
     )
 }
 
-// Simple styles
+// Update styles for a flatter, desktop feel
 const statBoxStyle = {
-    background: '#2a2a2a', padding: '20px', borderRadius: '15px', width: '200px',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+    background: '#1a1a1a', padding: '20px', width: '150px',
+    border: '1px solid #2a2a2a', borderLeft: '4px solid #444', textAlign: 'left'
 };
 
 const buttonStyle = (color) => ({
-    padding: '12px 24px', 
-    fontSize: '18px', 
-    cursor: 'pointer', 
-    backgroundColor: color, 
-    color: 'white', 
-    border: 'none', 
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+    padding: '10px 20px', fontSize: '16px', cursor: 'pointer', 
+    backgroundColor: color, color: 'white', border: 'none', 
+    borderRadius: '4px', fontWeight: 'bold'
 });
 
 export default App

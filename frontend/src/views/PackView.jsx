@@ -2,7 +2,7 @@ import Card from '../components/Card';
 
 const PackView = ({ pack, ownedCards }) => {
     return (
-        <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
+        <div style={{justifyContent: 'flex-start', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
             {pack.map((card, index) => {
                 const uniqueKey = `${card.name}-${card.rarity}-${card.imageUrl}`;
                 const isNew = !ownedCards.has(uniqueKey);

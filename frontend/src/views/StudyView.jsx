@@ -40,70 +40,49 @@ const StudyView = ({onEarnCoins}) => {
     }
 
     return (
-        <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '100%', padding: '20px'
-        }}>
-            <h2 style={{color: 'white', marginBottom: '20px'}}>HSK 1 Study Mode</h2>
-
-            {/* Progress Bar */}
-            <div style={{color: '#888', marginBottom: '10px'}}>
+        // Aligned top-left for desktop
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+            
+            <div style={{color: '#888', marginBottom: '20px', fontSize: '18px'}}>
                 Card {currentIndex + 1} / {HSK1_DATA.length}
             </div>
 
-            {/* Flip Card Container */}
-            <div
-                onClick={() => setIsFlipped(!isFlipped)}
-                style={{
-                    perspective: '1000px', width: '300px', height: '350px', cursor: 'pointer',
-                }}
-            >
-                <div style={{
-                    position: 'relative', width: '100%', height: '100%',
-                    textAlign: 'center', transition: 'transform 0.6s',
-                    transformStyle: 'preserve-3d',
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-                }}>
-                    <div style={{
-                        ...faceStyle, backgroundColor: 'white',
-                    }}>
-                        <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>
-                            {currentCard.hanzi}
-                        </h1>
-                        <div style={{position: 'absolute', bottom: '20px', color: '#aaa', fontSize: '14px'}}>
-                            (Click to Flip)
-                        </div>
+            {/* This wrapper holds the card size rigid so it doesn't squash */}
+            <div style={{ position: 'relative', width: '350px', height: '400px', perspective: '1000px' }}>
+                <div
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    style={{
+                        position: 'relative', width: '100%', height: '100%', cursor: 'pointer',
+                        textAlign: 'center', transition: 'transform 0.6s',
+                        transformStyle: 'preserve-3d',
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                    }}
+                >
+                    {/* Front Face */}
+                    <div style={{ ...faceStyle, backgroundColor: 'white' }}>
+                        <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>{currentCard.hanzi}</h1>
+                        <div style={{position: 'absolute', bottom: '20px', color: '#aaa', fontSize: '14px'}}>(Click to Flip)</div>
                     </div>
 
-                    <div style={{
-                        ...faceStyle,
-                        backgroundColor: '#f8f9fa',
-                        transform: 'rotateY(180deg)',
-                    }}>
-                        <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>
-                            {currentCard.hanzi}
-                        </h1>
-                        <h2 style={{color: '#e91e63', fontSize: '32px', marginBottom: '5px'}}>
-                            {currentCard.pinyin}
-                        </h2>
-                        <h3 style={{color: '#333', marginTop: '0', marginBottom: '20px'}}>
-                            {currentCard.meaning}
-                        </h3>
+                    {/* Back Face */}
+                    <div style={{ ...faceStyle, backgroundColor: '#f8f9fa', transform: 'rotateY(180deg)' }}>
+                        <h1 style={{fontSize: '80px', color: '#333', margin: 0}}>{currentCard.hanzi}</h1>
+                        <h2 style={{color: '#e91e63', fontSize: '32px', marginBottom: '5px'}}>{currentCard.pinyin}</h2>
+                        <h3 style={{color: '#333', marginTop: '0', marginBottom: '20px'}}>{currentCard.meaning}</h3>
 
                         <div style={{textAlign: 'left', width: '100%', padding: '10px', background: '#eee', borderRadius: '8px'}}>
                             <p style={{margin: '0 0 5px 0', fontWeight: 'bold', color: '#555'}}>Example:</p>
                             <p style={{margin: '0', fontSize: '16px', color: '#333'}}>{currentCard.sentence}</p>
-                            <p style={{margin: '5px 0 0 0', fontSize: '14px', color: '#666', fontStyle: 'italic'}}>
-                                {currentCard.sentenceMeaning}
-                            </p>
+                            <p style={{margin: '5px 0 0 0', fontSize: '14px', color: '#666', fontStyle: 'italic'}}>{currentCard.sentenceMeaning}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div style={{marginTop: '50px', display: 'flex', gap: '20px'}}>
+            {/* Controls */}
+            <div style={{marginTop: '30px', display: 'flex', gap: '15px', width: '350px', justifyContent: 'space-between'}}>
                 <button onClick={handlePrev} style={controlButtonStyle}>← Prev</button>
-                <button onClick={handleNext} style={controlButtonStyle}>Next →</button>
+                <button onClick={handleNext} style={{...controlButtonStyle, backgroundColor: '#4caf50', flex: 1, marginLeft: '10px'}}>Next (+10 💰)</button>
             </div>
         </div>
     );

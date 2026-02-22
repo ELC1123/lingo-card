@@ -2,23 +2,22 @@ const Navbar = ({ coins, setView, currentView}) => {
     return (
         <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 20px', backgroundColor: '#1e1e1e', color: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: '2px solid #444',
-            marginBottom: '30px'
+            padding: '15px 40px', backgroundColor: '#181818', color: 'white',
+            borderBottom: '1px solid #2a2a2a'
         }}>
-            {/* Logo & Title */}
-            <div onClick={() => setView('home')}
-                 style={{fontSize: '24px', fontWeight: 'bold', 
-                    cursor: 'pointer', display: 'flex', 
-                    alignItems: 'center', gap: '10px'}}>
-                <span style={{ fontSize: '28px' }}>🎴</span> LingoCard
-            </div>
-
-            {/* Navigation Links */}
-            <div style={{display: 'flex', gap: '20px', fontSize: '16px'}}>
-                <NavButton label="Open Packs" active={currentView === 'pack'} onClick={() => setView('pack')} />
-                <NavButton label="Collection" active={currentView === 'sets' || currentView === 'binder'} onClick={() => setView('sets')} />
-                <NavButton label="Study HSK" active={currentView === 'study'} onClick={() => setView('study')} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+                <div onClick={() => setView('home')}
+                    style={{fontSize: '24px', fontWeight: 'bold', 
+                        cursor: 'pointer', display: 'flex', 
+                        alignItems: 'center', gap: '10px'}}>
+                    <span style={{ fontSize: '28px' }}>🎴</span> LingoCard
+                </div>
+                {/* Navigation Links */}
+                <div style={{display: 'flex', gap: '20px', fontSize: '16px'}}>
+                    <NavButton label="Open Packs" active={currentView === 'pack'} onClick={() => setView('pack')} />
+                    <NavButton label="Collection" active={currentView === 'sets' || currentView === 'binder'} onClick={() => setView('sets')} />
+                    <NavButton label="Study HSK" active={currentView === 'study'} onClick={() => setView('study')} />
+                </div>
             </div>
 
             {/* Coin Display */}
