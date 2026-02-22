@@ -47,10 +47,10 @@ const QuizView = ({ onEarnCoins }) => {
         }
 
         if(selectedOption.id === currentCard.id) {
-            setFeedback({type: 'correct', message: 'Correct! +10 coins'});
+            setFeedback({type: 'correct', msg: 'Correct! +10 coins 💰'});
             onEarnCoins(10);
         } else {
-            setFeedback({type: 'incorrect', message: `Incorrect! The correct answer was "${currentCard.meaning}"`});
+            setFeedback({type: 'wrong', msg: `Incorrect! The correct answer was "${currentCard.meaning}"`});
         }
     };
 
@@ -65,10 +65,10 @@ const QuizView = ({ onEarnCoins }) => {
         const validAnswers = currentCard.meaning.toLowerCase().split('/').map(s => s.trim());
 
         if(validAnswers.includes(guess) || currentCard.pinyin.toLowerCase() === guess) {
-            setFeedback({type: 'correct', message: 'Correct! +25 coins'});
+            setFeedback({type: 'correct', msg: 'Correct! +25 coins 💰'});
             onEarnCoins(25);
         } else {
-            setFeedback({type: 'incorrect', message: `Incorrect! The correct answer was "${currentCard.meaning}"`});
+            setFeedback({type: 'wrong', msg: `Incorrect! The correct answer was "${currentCard.meaning}"`});
         }
     };    
 
@@ -78,15 +78,17 @@ const QuizView = ({ onEarnCoins }) => {
                 <h3 style={{ color: '#aaa', marginBottom: '20px', fontWeight: 'normal'}}>
                     Choose quiz mode!
                 </h3>
-                <div onClick={() => setMode('mcq')} style={modeBoxStyle('#5e9cff')}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '24px', color: 'white' }}>Easy Mode</h3>
-                    <p style={{ margin: 0, color: '#aaa' }}>Multiple Choice</p>
-                    <div style={{ marginTop: '20px', color: '#FFD700', fontWeight: 'bold', fontSize: '18px' }}>Reward: 10 💰</div>
-                </div>
-                <div onClick={() => setMode('typing')} style={modeBoxStyle('#ff5e5e')}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '24px', color: 'white' }}>Hard Mode</h3>
-                    <p style={{ margin: 0, color: '#aaa' }}>Type the Answer</p>
-                    <div style={{ marginTop: '20px', color: '#FFD700', fontWeight: 'bold', fontSize: '18px' }}>Reward: 25 💰</div>
+                <div style={{ display: 'flex', gap: '30px' }}>
+                    <div onClick={() => setMode('mcq')} style={modeBoxStyle('#5e9cff')}>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '24px', color: 'white' }}>Easy Mode</h3>
+                        <p style={{ margin: 0, color: '#aaa' }}>Multiple Choice</p>
+                        <div style={{ marginTop: '20px', color: '#FFD700', fontWeight: 'bold', fontSize: '18px' }}>Reward: 10 💰</div>
+                    </div>
+                    <div onClick={() => setMode('typing')} style={modeBoxStyle('#ff5e5e')}>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '24px', color: 'white' }}>Hard Mode</h3>
+                        <p style={{ margin: 0, color: '#aaa' }}>Type the Answer</p>
+                        <div style={{ marginTop: '20px', color: '#FFD700', fontWeight: 'bold', fontSize: '18px' }}>Reward: 25 💰</div>
+                    </div>
                 </div>
             </div>
         );
@@ -137,22 +139,27 @@ const QuizView = ({ onEarnCoins }) => {
                 </div>
             )}
 
+            {/* Answers Area: Typing */}
             {mode === 'typing' && (
-                <form onSubmit={handleTypingSubmit} style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                    <input type="text" value={userAnswer} 
-                        onChange={(e) => setUserAnswer(e.target.value)}
+                <form onSubmit={handleTypingSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'row', gap: '15px' }}>
+                    <input 
+                        type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)}
                         placeholder="Type the pinyin or meaning..."
                         disabled={feedback !== null}
                         style={{
-                            flex: 1, padding: '15px', fontSize: '18px', borderRadius: '8px', 
-                            border: '1px solid #444', backgroundColor: '#2a2a2a', color: 'white',
-                            outline: 'none'
+                            flex: 1, padding: '15px 20px', fontSize: '18px', borderRadius: '8px', 
+                            border: '1px solid #444', backgroundColor: '#2a2a2a', color: 'white', outline: 'none'
                         }}
                         autoFocus
                     />
-                    <button type="submit" disabled={feedback !== null || !userAnswer.trim()} 
-                        style={{ padding: '0 25px', fontSize: '18px', backgroundColor: '#5e9cff', color: 'white', 
-                        border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                    <button 
+                        type="submit"  disabled={feedback !== null || !userAnswer.trim()} 
+                        style={{ 
+                            padding: '0 30px', fontSize: '18px', backgroundColor: '#5e9cff', color: 'white', 
+                            border: 'none', borderRadius: '8px', cursor: (feedback !== null || !userAnswer.trim()) ? 'not-allowed' : 'pointer',
+                            fontWeight: 'bold', opacity: (feedback !== null || !userAnswer.trim()) ? 0.5 : 1 // Dims the button when empty
+                        }}
+                    >
                         Submit
                     </button>
                 </form>
