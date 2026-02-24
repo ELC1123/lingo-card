@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import Card from '../components/Card';
 import { getCardNumber } from '../utils/cardHelper';
 
-// Memoized function to get cards for the binder view, grouped and sorted
+/**
+ * Shows cards for a selected set in the user's collection.
+ * Groups identical cards and sorts by the numeric card number where possible.
+ */
 const BinderView = ({ collection, selectedSet, onBack }) => {
     const binderCards = useMemo(() => {
         if (!selectedSet) {
@@ -21,10 +24,11 @@ const BinderView = ({ collection, selectedSet, onBack }) => {
             return acc;
         }, {});
 
+        // Convert grouped map to array and sort by the card's numeric id (if parsable)
         return Object.values(grouped).sort((a, b) => {
             const numA = getCardNumber(a.imageUrl);
             const numB = getCardNumber(b.imageUrl);
-            return typeof numA === 'number' ? numA - numB : 0;
+            return (typeof numA === 'number' ? numA : 999) - (typeof numB === 'number' ? numB : 999);
         });
     }, [collection, selectedSet]);
 
@@ -42,9 +46,9 @@ const BinderView = ({ collection, selectedSet, onBack }) => {
                 <div style={{color: '#aaa', fontSize: '16px'}}>No cards from this set in your collection yet.</div>
             ) : (
                 <div style={{justifyContent: 'center', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
-                    {binderCards.map((card, index) => (
+                    {binderCards.map((card) => (
                         <Card 
-                            key={card.id} 
+                            key={`${card.name}-${card.rarity}-${card.imageUrl}`} 
                             card={card} 
                             width="150px" 
                         />

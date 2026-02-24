@@ -1,4 +1,5 @@
-// Utility function to determine card styling based on rarity
+// Utility function to determine card styling based on rarity.
+// Centralizes visual decisions for card components so styles remain consistent.
 export const getRarityStyle = (rarity) => {
     const r = rarity ? rarity.toLowerCase() : '';
 
@@ -71,18 +72,28 @@ export const getRarityStyle = (rarity) => {
     };
 }
 
-// Utility function to extract card number from image URL
+// Utility function to extract a numeric card number from an image URL.
+// The URL format used by the external API is assumed; this function attempts
+// to parse a number segment and falls back to a high value for sorting when
+// parsing fails. Returning 999 ensures unknown cards sort to the end.
 export const getCardNumber = (url) => {
     try {
         const parts = url.split('/');
-        const numStr = parts[parts.length - 2];
-        return parseInt(numStr.replace(/\D/g, '')) || 999;
+
+        // Some image URLs include the card number in the second-to-last segment.
+        // Example: https://.../sets/me01/123/high.webp -> we expect '123' at parts[length-2]
+        const numStr = parts[parts.length - 2] || '';
+
+        const parsed = parseInt(numStr.replace(/\D/g, ''), 10);
+        return Number.isFinite(parsed) ? parsed : 999;
     } catch (e) {
-        return '??';
+        // Return sentinel value so callers can handle unknown numbers gracefully
+        return 999;
     }
 }
 
 // Utility function to style rarity tags
+// Small helper returning inline styles for a rarity tag pill.
 export const tagStyle = (color) => ({
     display: 'inline-block',
     padding: '4px 8px',

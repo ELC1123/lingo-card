@@ -1,3 +1,4 @@
+// Top-level navigation bar displayed across the app. Shows navigation buttons and coin count.
 const Navbar = ({ coins, setView, currentView}) => {
     return (
         <div style={{
@@ -35,6 +36,7 @@ const Navbar = ({ coins, setView, currentView}) => {
     );
 };
 
+// Small presentational button used by Navbar. Inline styles keep it dependency-free.
 const NavButton = ({ label, active, onClick }) => (
     <button 
         onClick={onClick}

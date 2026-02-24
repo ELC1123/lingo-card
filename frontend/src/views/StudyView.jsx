@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { HSK1_DATA } from '../data/hsk1data';
 
+/**
+ * Simple flashcard-style study view. Clicking the card flips it to reveal pronunciation
+ * and example usage. Each "Next" grants the user some coins (via `onEarnCoins`).
+ */
 const StudyView = ({onEarnCoins}) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
     const currentCard = HSK1_DATA[currentIndex];
 
-    // Added a flip animation for better UX
+    // Advance to the next card and reward the user for studying
     const handleNext = () => {
-        onEarnCoins(10); // Earn coins for studying
+        onEarnCoins(10);
         setIsFlipped(false);
         setTimeout(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % HSK1_DATA.length);
         }, 150);
     };
 
-    // Added a previous button for better navigation
+    // Move back to the previous card
     const handlePrev = () => {
         setIsFlipped(false);
         setTimeout(() => {

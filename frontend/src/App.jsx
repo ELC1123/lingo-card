@@ -8,16 +8,29 @@ import Navbar from "./components/Navbar";
 import QuizView from "./views/QuizView";
 
 function App() {
-    const [pack, setPack] = useState([]); // State to hold the opened pack
-    const [collection, setCollection] = useState([]); // State to hold the user's collection
-    const [view, setView] = useState('home'); // 'pack' or 'binder'
-    const [selectedSet, setSelectedSet] = useState(false); // State to track the selected set for filtering
-    const [loading, setLoading] = useState(false); // State to track loading status
-    const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set()); // Track cards owned before opening pack
+    // Pack currently opened (array of Card objects returned by backend after opening a pack)
+    const [pack, setPack] = useState([]);
+
+    // User's entire collection fetched from backend
+    const [collection, setCollection] = useState([]);
+
+    // Which main view is shown: 'home', 'pack', 'sets', 'binder', 'study', 'quiz'
+    const [view, setView] = useState('home');
+
+    // Currently selected set code for the binder view. false means none selected.
+    const [selectedSet, setSelectedSet] = useState(false);
+
+    // Loading indicator used around network actions
+    const [loading, setLoading] = useState(false);
+
+    // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
+    const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());
+
+    // Coins persisted in localStorage. Initialize from storage if present.
     const [coins, setCoins] = useState(() => {
         const savedCoins = localStorage.getItem('coins');
         return savedCoins != null ? parseInt(savedCoins, 10) : 0;
-    }); // State to track user's coins
+    });
 
     useEffect(() => {
         localStorage.setItem('coins', coins);
@@ -50,6 +63,7 @@ function App() {
         refreshCollection();
     }, [refreshCollection]);
 
+    // Update coins when earned
     const handleEarnCoins = useCallback((amount) => {
         setCoins(prev => prev + amount);
     }, []);

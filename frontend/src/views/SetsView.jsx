@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { SET_METADATA } from '../data/setMetadata';
 
-// Memoized function to get unique sets from the collection with progress info
+/**
+ * Displays available sets and the user's progress collecting unique cards from those sets.
+ * Uses `SET_METADATA` to know expected total counts per set. This view is memoized
+ * so recomputation only occurs when `collection` changes.
+ */
 const SetsView = ({ collection, onSelectSet }) => {
     const setGroups = useMemo(() => {
         const allSetCodes = Object.keys(SET_METADATA).filter(code => code !== 'default');

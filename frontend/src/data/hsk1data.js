@@ -1,3 +1,5 @@
+// Minimal HSK level 1 dataset used by StudyView and QuizView.
+// Each entry contains the Chinese character(s), pinyin, meaning and example sentence.
 export const HSK1_DATA = [
     {
         id: 1,

@@ -1,6 +1,15 @@
 import { getRarityStyle, getCardNumber, tagStyle } from "../utils/cardHelper";
 
+/**
+ * Presentational card component that displays a single card's image, name and metadata.
+ *
+ * Props:
+ * - `card`: object containing `name`, `rarity`, `setCode`, `imageUrl` and optionally `count`.
+ * - `isNew`: whether to show a "NEW" badge (computed by parent based on previous ownership)
+ * - `width`: control visual width for different layouts (defaults to '200px')
+ */
 const Card = ({ card, isNew = false, width = '200px'}) => {
+    // Derive style information based on rarity string
     const rarityStyle = getRarityStyle(card.rarity);
     const borderThickness = width === '200px' ? '4px' : '1px';
 
@@ -24,7 +33,11 @@ const Card = ({ card, isNew = false, width = '200px'}) => {
                     borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 20
                 }}>NEW!</div>
             )}
+
+            {/* Card artwork. Note: ensure `imageUrl` is validated upstream to avoid broken images */}
             <img src={card.imageUrl} style={{width: '100%', borderRadius: '8px'}} />
+
+            {/* Title and metadata */}
             <h3 style={{
                 margin: '8px 0 4px 0', fontSize: '16px', textAlign: 'center',
                 color: rarityStyle.textColor,
@@ -37,8 +50,10 @@ const Card = ({ card, isNew = false, width = '200px'}) => {
                 {card.setCode.toUpperCase()} • #{getCardNumber(card.imageUrl)}
             </div>
 
+            {/* Rarity tag */}
             <div style={tagStyle(rarityStyle.pillColor)}>{card.rarity}</div>
 
+            {/* Optional count badge (present when cards are grouped in the binder) */}
             {card.count > 0 && (
                 <div style={{
                     position: 'absolute', top: '-8px', right: '-8px',
