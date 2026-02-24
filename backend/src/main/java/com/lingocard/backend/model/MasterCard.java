@@ -17,12 +17,12 @@ import lombok.Data;
 public class MasterCard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id;    // Auto-generated Card ID
 
-    // Canonical name for the card
+    // Card name
     private String name;
 
-    // Rarity as reported by the external API (e.g., "Common", "Uncommon", "Rare")
+    //Rarity of the card as reported by the external API
     private String rarity;
 
     // Set code (e.g., "me01") used to group master cards into sets

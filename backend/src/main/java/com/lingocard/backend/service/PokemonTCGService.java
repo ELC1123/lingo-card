@@ -66,18 +66,16 @@ public class PokemonTCGService {
 
         List<Card> boosterPack = new ArrayList<>();
 
-        // Use a single Random instance for selection
-        Random rand = new Random();
 
         // Pick 3 commons (if available)
         for(int i = 0; i < 3 && !commons.isEmpty(); i++) {
-            MasterCard selected = commons.get(rand.nextInt(commons.size()));
+            MasterCard selected = commons.get(random.nextInt(commons.size()));
             boosterPack.add(convertToUserCard(selected));
         }
 
         // Pick one from uncommons and one from rare+ (fallback to full library if bucket empty)
-        boosterPack.add(convertToUserCard(pickFromBucket(uncommons, libraryCards, rand)));
-        boosterPack.add(convertToUserCard(pickFromBucket(rarePlus, libraryCards, rand)));
+        boosterPack.add(convertToUserCard(pickFromBucket(uncommons, libraryCards, random)));
+        boosterPack.add(convertToUserCard(pickFromBucket(rarePlus, libraryCards, random)));
 
         return boosterPack;
     }
@@ -115,12 +113,10 @@ public class PokemonTCGService {
                     // Log and continue — one failed card shouldn't block caching of the set
                     log.warn("Failed to fetch details for card ID {}: {}", node.path("id").asText(), e.getMessage());
                 }
-
-                // Persist batch so far. Note: currently this call happens inside the loop.
-                // Consider moving `saveAll` outside of the loop to persist once per set for performance.
-                masterCardRepository.saveAll(batchToSave);
-                log.info("Cached {} cards for set {}", batchToSave.size(), setCode);
             }
+            // Save the whole batch of cards
+            masterCardRepository.saveAll(batchToSave);
+            log.info("Cached {} cards for set {}", batchToSave.size(), setCode);
         } catch (Exception e) {
             log.error("Caching failed for set {}: {}", setCode, e.getMessage());
         }

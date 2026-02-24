@@ -19,13 +19,13 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // Primary key (auto-generated)
 
-    // Human-readable name of the card (e.g., "Pikachu")
+    // Card name
     private String name;
 
-    // Rarity string coming from the master data (e.g., "Common", "Rare", "Holo")
+    // Rarity of the card (according to the Master data)
     private String rarity;
 
-    // Set code this card belongs to (used for linking to set metadata)
+    // Set code this card belongs to
     private String setCode;
 
     // URL to an image asset for the card. Be careful validating external URLs in production.
