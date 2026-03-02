@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class PokemonTCGService {
 
     private final MasterCardRepository masterCardRepository;
-
     private final CardRepository cardRepository;
 
     // Base URL for the Pokemon TCG API (external dependency)
