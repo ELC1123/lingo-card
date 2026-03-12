@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
  * and stores the resulting cards in the user's collection (database).
  */
 @RestController
-@CrossOrigin(origins="http://localhost:5173") // Allow CORS for the local frontend during development
 @RequestMapping("/api/packs")
 @RequiredArgsConstructor
 public class PackController {

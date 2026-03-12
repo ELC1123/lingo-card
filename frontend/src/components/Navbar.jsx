@@ -1,9 +1,9 @@
 // Top-level navigation bar displayed across the app. Shows navigation buttons and coin count.
-const Navbar = ({ coins, setView, currentView}) => {
+const Navbar = ({ coins, setView, currentView, onLogout }) => {
     return (
         <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '15px 40px', backgroundColor: '#181818', color: 'white',
+            padding: '10px 30px', backgroundColor: '#181818', color: 'white',
             borderBottom: '1px solid #2a2a2a'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
@@ -17,7 +17,7 @@ const Navbar = ({ coins, setView, currentView}) => {
                 <div style={{display: 'flex', gap: '20px', fontSize: '16px'}}>
                     <NavButton label="Open Packs" active={currentView === 'pack'} onClick={() => setView('pack')} />
                     <NavButton label="Collection" active={currentView === 'sets' || currentView === 'binder'} onClick={() => setView('sets')} />
-                    <NavButton label="Study HSK" active={currentView === 'study'} onClick={() => setView('study')} />
+                    <NavButton label="Study" active={currentView === 'study'} onClick={() => setView('study')} />
                     <NavButton label="Quiz" active={currentView === 'quiz'} onClick={() => setView('quiz')} />
                 </div>
             </div>
@@ -27,10 +27,26 @@ const Navbar = ({ coins, setView, currentView}) => {
                 backgroundColor: '#333', padding: '8px 16px', borderRadius: '20px',
                 display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #444'
             }}>
-                <span>💰</span>
-                <span style={{fontWeight: 'bold', fontSize: '18px', color: '#FFD700'}}>
-                    {coins}
-                </span>
+                <div style={{ background: '#333', padding: '8px 15px', borderRadius: '20px', color: '#FFD700', fontWeight: 'bold' }}>
+                    💰 {coins}
+                </div>
+                <button
+                    onClick = {onLogout}
+                    style={{
+                        background: 'transparent',
+                        color : '#ff5e5e',
+                        border: '1px solid #ff5e5e',
+                        padding: '8px 15px',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = 'rgba(255, 94, 94, 0.1)'}
+                    onMouseOut = {(e) => e.target.style.background = 'transparent'}
+                >
+                    Logout
+                </button>
             </div>
         </div>
     );

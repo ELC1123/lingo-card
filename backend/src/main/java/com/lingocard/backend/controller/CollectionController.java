@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
  * Currently exposes a simple endpoint to retrieve all persisted `Card` entities.
  */
 @RestController
-@CrossOrigin(origins="http://localhost:5173") // Allow local frontend during development
 @RequestMapping("/api/collection")
 @RequiredArgsConstructor
 public class CollectionController {

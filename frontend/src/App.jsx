@@ -6,6 +6,7 @@ import BinderView from './views/BinderView';
 import StudyView from './views/StudyView';
 import Navbar from "./components/Navbar";
 import QuizView from "./views/QuizView";
+import AuthView from "./views/AuthView";
 
 function App() {
     // Pack currently opened (array of Card objects returned by backend after opening a pack)
@@ -26,6 +27,24 @@ function App() {
     // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
     const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());
 
+    const [token, setToken] = useState(() => localStorage.getItem('lingo_token'));
+    const [username, setUsername] = useState(() => localStorage.getItem('lingo_username'));
+
+    const handleLogin = (newToken, newUsername) => {
+        localStorage.setItem('lingo_token', newToken);
+        localStorage.setItem('lingo_username', newUsername);
+        setToken(newToken);
+        setUsername(newUsername);
+        setView('home');
+    };
+    
+    const handleLogout = () => {
+        localStorage.removeItem('lingo_token');
+        localStorage.removeItem('lingo_username');
+        setToken(null);
+        setUsername(null);
+    };
+
     // Coins persisted in localStorage. Initialize from storage if present.
     const [coins, setCoins] = useState(() => {
         const savedCoins = localStorage.getItem('coins');
@@ -45,9 +64,20 @@ function App() {
 
     // Function to refresh collection data from the backend
     const refreshCollection = useCallback(() => {
+        if (!token) {
+            // nothing to do when not authenticated
+            return;
+        }
         setLoading(true);
-        fetch('http://localhost:8080/api/collection')
-            .then((res) => res.json())
+        fetch('http://localhost:8080/api/collection', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch collection (${res.status})`);
+                }
+                return res.json();
+            })
             .then((data) => {
                 setCollection(data);
                 setLoading(false);
@@ -56,12 +86,14 @@ function App() {
                 console.error("Error fetching collection:", error);
                 setLoading(false);
             });
-    }, []);
+    }, [token]);
 
-    // Fetch collection on initial load
+    // Fetch collection on initial load (or when login occurs)
     useEffect(() => {
-        refreshCollection();
-    }, [refreshCollection]);
+        if (token) {
+            refreshCollection();
+        }
+    }, [refreshCollection, token]);
 
     // Update coins when earned
     const handleEarnCoins = useCallback((amount) => {
@@ -69,41 +101,40 @@ function App() {
     }, []);
 
     // Memoized function to extract unique sets from the collection
-    const handleOpenPack = useCallback(() => {
+    const handleOpenPack = useCallback(async () => {
         const PACK_COST = 100; // Define pack cost
         if (coins < PACK_COST) {
             alert("Not enough coins to open a pack!");
             return;
         }
 
-        // Deduct coins immediately
-        setCoins(prev => prev - PACK_COST);
-
         // Save the current owned cards BEFORE opening the pack
         setPreviousOwnedCards(ownedCards);
         setLoading(true);
-        fetch('http://localhost:8080/api/packs/open-pack', {method: 'POST'})
-            .then((response) => response.json())
-            .then((data) => {
-                setPack(data);
-                setView('pack');
-                // Refresh collection to sync owned cards
-                fetch('http://localhost:8080/api/collection')
-                    .then((res) => res.json())
-                    .then((collectionData) => {
-                        setCollection(collectionData);
-                        setLoading(false);
-                    })
-                    .catch((error) => {
-                        console.error("Error refreshing collection:", error);
-                        setLoading(false);
-                    });
-            })
-            .catch((error) => {
-                console.error("Error opening pack:", error);
-                setLoading(false);
+
+        try {
+            const response = await fetch('http://localhost:8080/api/packs/open-pack', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
-    }, [coins, ownedCards]);
+
+            if (!response.ok) {
+                throw new Error(`Pack open failed (${response.status})`);
+            }
+
+            const data = await response.json();
+
+            setPack(data);
+            setView('pack');
+
+            setCoins(prev => prev - PACK_COST);
+            refreshCollection();
+        } catch (error) {
+            console.error("Error opening pack: ", error);
+            setLoading(false);
+            alert("Failure to open pack. Are you connected to the server?");
+        }
+    }, [coins, ownedCards, token, refreshCollection]);
 
     // Memoized function to extract unique sets from the collection
     const handleViewSets = useCallback(() => {
@@ -117,112 +148,117 @@ function App() {
         setView('binder');
     }, []);
     
-
     return (
         <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#121212' }}>
             
-            {/* Navbar */}
-            <Navbar coins={coins} setView={setView} currentView={view} />
+            {!token ? (
+                <AuthView onLogin={handleLogin} />
+            ) : (
+                <>
+                    {/* Navbar */}
+                    <Navbar coins={coins} setView={setView} currentView={view} onLogout = {handleLogout} />
 
-            {/* Main Content Area */}
-            <div style={{ padding: '0 50px 50px 50px', width: '100%' }}>
-                
-                {/* Dashboard / Home View */}
-                {view === 'home' && (
-                    <div style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', 
-                            paddingBottom: '30px', marginBottom: '30px', paddingTop: '20px' }}>
-                            {/* Left Side Info */}
-                            <div>
-                                <h1 style={{fontSize: '48px', margin: '0 0 10px 0'}}>Welcome!</h1>
-                                <p style={{ fontSize: '18px', color: '#aaa', margin: 0 }}>Study Mandarin. Earn Packs. Master your collection.</p>
-                                
-                                <button
-                                    onClick={() => setView('study')}
-                                    style={{
-                                        marginTop: '30px', padding: '12px 30px', fontSize: '18px', 
-                                        backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-                                    }}
-                                >
-                                    Jump to Study →
-                                </button>
-                            </div>
-                            
-                            {/* Right Side Stats */}
-                            <div style={{ display: 'flex', gap: '20px' }}>
-                                <div style={statBoxStyle}>
-                                    <h2 style={{fontSize: '40px', margin: 0, color: '#5e9cff'}}>{collection.length}</h2>
-                                    <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Total Cards</p>
-                                </div>
-                                <div style={statBoxStyle}>
-                                    <h2 style={{fontSize: '40px', margin: 0, color: '#FFD700'}}>{coins}</h2>
-                                    <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Available Coins</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Sets View */}
-                {view === 'sets' && (
-                    <div style={{ width: '100%' }}>
-                        <SetsView collection={collection} onSelectSet={handleViewSetBinder} />
-                    </div>
-                )}
-
-                {/* Binder View */}
-                {view === 'binder' && (
-                    <div style={{ width: '100%' }}>
-                        <BinderView collection={collection} selectedSet={selectedSet} onBack={handleViewSets} />
-                    </div>
-                )}
-
-                {/* Pack View */}
-                {view === 'pack' && (
-                    <div style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                            marginBottom: '30px', borderBottom: '1px solid #333', paddingBottom: '20px', paddingTop: '20px'}}>
-                            <h2 style={{ margin: 0 }}>Booster Packs</h2>
-                            <button 
-                                onClick={handleOpenPack} 
-                                disabled={loading || coins < 100}
-                                style={{
-                                    ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#333'),
-                                    cursor: coins >= 100 ? 'pointer' : 'not-allowed'
-                                }}
-                            >
-                                {loading ? 'Opening...' : `Open Pack (100 💰)`}
-                            </button>
-                        </div>
+                    {/* Main Content Area */}
+                    <div style={{ padding: '0 50px 50px 50px', width: '100%' }}>
                         
-                        {pack.length === 0 ? (
-                            <div style={{ color: '#555', fontSize: '18px' }}>Ready to pull? Buy a pack above.</div>
-                        ) : (
-                            <PackView pack={pack} ownedCards={previousOwnedCards} />
+                        {/* Dashboard / Home View */}
+                        {view === 'home' && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333', 
+                                    paddingBottom: '30px', marginBottom: '30px', paddingTop: '20px' }}>
+                                    {/* Left Side Info */}
+                                    <div>
+                                        <h1 style={{fontSize: '48px', margin: '0 0 10px 0'}}>Welcome!</h1>
+                                        <p style={{ fontSize: '18px', color: '#aaa', margin: 0 }}>Study Mandarin. Earn Packs. Master your collection.</p>
+                                        
+                                        <button
+                                            onClick={() => setView('study')}
+                                            style={{
+                                                marginTop: '30px', padding: '12px 30px', fontSize: '18px', 
+                                                backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+                                            }}
+                                        >
+                                            Jump to Study →
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Right Side Stats */}
+                                    <div style={{ display: 'flex', gap: '20px' }}>
+                                        <div style={statBoxStyle}>
+                                            <h2 style={{fontSize: '40px', margin: 0, color: '#5e9cff'}}>{collection.length}</h2>
+                                            <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Total Cards</p>
+                                        </div>
+                                        <div style={statBoxStyle}>
+                                            <h2 style={{fontSize: '40px', margin: 0, color: '#FFD700'}}>{coins}</h2>
+                                            <p style={{margin: '5px 0 0 0', color: '#888', fontSize: '14px', textTransform: 'uppercase', fontWeight: 'bold'}}>Available Coins</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Sets View */}
+                        {view === 'sets' && (
+                            <div style={{ width: '100%' }}>
+                                <SetsView collection={collection} onSelectSet={handleViewSetBinder} />
+                            </div>
+                        )}
+
+                        {/* Binder View */}
+                        {view === 'binder' && (
+                            <div style={{ width: '100%' }}>
+                                <BinderView collection={collection} selectedSet={selectedSet} onBack={handleViewSets} />
+                            </div>
+                        )}
+
+                        {/* Pack View */}
+                        {view === 'pack' && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                                    marginBottom: '30px', borderBottom: '1px solid #333', paddingBottom: '20px', paddingTop: '20px'}}>
+                                    <h2 style={{ margin: 0 }}>Booster Packs</h2>
+                                    <button 
+                                        onClick={handleOpenPack} 
+                                        disabled={loading || coins < 100}
+                                        style={{
+                                            ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#333'),
+                                            cursor: coins >= 100 ? 'pointer' : 'not-allowed'
+                                        }}
+                                    >
+                                        {loading ? 'Opening...' : `Open Pack (100 💰)`}
+                                    </button>
+                                </div>
+                                
+                                {pack.length === 0 ? (
+                                    <div style={{ color: '#555', fontSize: '18px' }}>Ready to pull? Buy a pack above.</div>
+                                ) : (
+                                    <PackView pack={pack} ownedCards={previousOwnedCards} />
+                                )}
+                            </div>
+                        )}
+
+                        {/* Study View */}
+                        {view === 'study' && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
+                                    <h2 style={{ margin: 0 }}>HSK 1 Study Session</h2>
+                                </div>
+                                <StudyView onEarnCoins={handleEarnCoins} />
+                            </div>
+                        )}
+
+                        {/* Quiz View */}
+                        {view === 'quiz' && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
+                                    <h2 style={{ margin: 0 }}>Quiz</h2>
+                                </div>
+                                <QuizView onEarnCoins={handleEarnCoins} />
+                            </div>
                         )}
                     </div>
-                )}
-
-                {/* Study View */}
-                {view === 'study' && (
-                    <div style={{ width: '100%' }}>
-                        <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
-                            <h2 style={{ margin: 0 }}>HSK 1 Study Session</h2>
-                        </div>
-                        <StudyView onEarnCoins={handleEarnCoins} />
-                    </div>
-                )}
-
-                {/* Quiz View */}
-                {view === 'quiz' && (
-                    <div style={{ width: '100%' }}>
-                        <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
-                            <h2 style={{ margin: 0 }}>Quiz</h2>
-                        </div>
-                        <QuizView onEarnCoins={handleEarnCoins} />
-                    </div>
-                )}
-            </div>
+                </>
+            )}
         </div>
     )
 }

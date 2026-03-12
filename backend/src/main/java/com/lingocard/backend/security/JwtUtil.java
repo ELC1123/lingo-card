@@ -24,6 +24,7 @@ public class JwtUtil {
     }
 
     public String extractUsername(String token) {
+        // parseClaimsJws will throw if the token is invalid/expired
         return Jwts.parser()
             .verifyWith(key)
             .build()

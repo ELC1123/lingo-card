@@ -207,7 +207,7 @@ const QuizView = ({ onEarnCoins }) => {
             {feedback && (
                 <button 
                     onClick={nextQuestion}
-                    style={{marginTop: '30px', padding: '15px 40px', fontSize: '20px', backgroundColor: '#4caf50', 
+                    style={{marginTop: '20px', padding: '15px 40px', fontSize: '20px', backgroundColor: '#4caf50', 
                         color: 'white', border: 'none', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold', 
                         boxShadow: '0 4px 10px rgba(76, 175, 80, 0.3)'}}
                 >
