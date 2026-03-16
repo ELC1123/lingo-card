@@ -27,20 +27,20 @@ function App() {
     // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
     const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());
 
-    const [token, setToken] = useState(() => localStorage.getItem('lingo_token'));
-    const [username, setUsername] = useState(() => localStorage.getItem('lingo_username'));
+    const [token, setToken] = useState(() => sessionStorage.getItem('lingo_token'));
+    const [username, setUsername] = useState(() => sessionStorage.getItem('lingo_username'));
 
     const handleLogin = (newToken, newUsername) => {
-        localStorage.setItem('lingo_token', newToken);
-        localStorage.setItem('lingo_username', newUsername);
+        sessionStorage.setItem('lingo_token', newToken);
+        sessionStorage.setItem('lingo_username', newUsername);
         setToken(newToken);
         setUsername(newUsername);
         setView('home');
     };
     
     const handleLogout = () => {
-        localStorage.removeItem('lingo_token');
-        localStorage.removeItem('lingo_username');
+        sessionStorage.removeItem('lingo_token');
+        sessionStorage.removeItem('lingo_username');
         setToken(null);
         setUsername(null);
     };
