@@ -52,7 +52,7 @@ const StudyView = ({onEarnCoins}) => {
             </div>
 
             {/* This wrapper holds the card size rigid so it doesn't squash */}
-            <div style={{ position: 'relative', width: '350px', height: '400px', perspective: '1000px' }}>
+            <div style={{ position: 'relative', width: '550px', height: '400px', perspective: '1000px' }}>
                 <div
                     onClick={() => setIsFlipped(!isFlipped)}
                     style={{
