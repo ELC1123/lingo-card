@@ -2,14 +2,17 @@ package com.lingocard.backend.controller;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.lingocard.backend.model.Card;
 import com.lingocard.backend.repository.CardRepository;
 import com.lingocard.backend.service.PokemonTCGService;
+import com.lingocard.backend.service.SseService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +32,7 @@ public class PackController {
 
     // Repository to persist cards into the collection table
     private final CardRepository cardRepository;
+    private final SseService sseService;
 
     /**
      * Opens a booster pack from the specified set and saves the pulled cards.
@@ -42,5 +46,14 @@ public class PackController {
 
         // Persist generated cards and return persisted entities to the client
         return cardRepository.saveAll(cards);
+    }
+
+    /**
+     * Shows progress of fetching cards from a set
+     * @return progress of fetching cards
+     */
+    @GetMapping("/stream-progress")
+    public SseEmitter streamProgress() {
+        return sseService.createEmitter();
     }
 }

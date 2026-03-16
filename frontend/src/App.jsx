@@ -23,13 +23,13 @@ function App() {
 
     // Loading indicator used around network actions
     const [loading, setLoading] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(null);
 
     // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
     const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());
-
     const [token, setToken] = useState(() => sessionStorage.getItem('lingo_token'));
     const [username, setUsername] = useState(() => sessionStorage.getItem('lingo_username'));
-
+    
     const handleLogin = (newToken, newUsername) => {
         sessionStorage.setItem('lingo_token', newToken);
         sessionStorage.setItem('lingo_username', newUsername);
@@ -112,6 +112,12 @@ function App() {
         setPreviousOwnedCards(ownedCards);
         setLoading(true);
 
+        const sse = new EventSource('http://localhost:8080/api/packs/stream-progress');
+        sse.addEventListener('progress', (e) => {
+            const data = JSON.parse(e.data);
+            setDownloadProgress(data);
+        })
+
         try {
             const response = await fetch('http://localhost:8080/api/packs/open-pack', {
                 method: 'POST',
@@ -133,6 +139,10 @@ function App() {
             console.error("Error opening pack: ", error);
             setLoading(false);
             alert("Failure to open pack. Are you connected to the server?");
+        } finally {
+            sse.close();
+            setDownloadProgress(null);
+            setLoading(false);
         }
     }, [coins, ownedCards, token, refreshCollection]);
 
@@ -217,16 +227,37 @@ function App() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
                                     marginBottom: '30px', borderBottom: '1px solid #333', paddingBottom: '20px', paddingTop: '20px'}}>
                                     <h2 style={{ margin: 0 }}>Booster Packs</h2>
-                                    <button 
-                                        onClick={handleOpenPack} 
-                                        disabled={loading || coins < 100}
-                                        style={{
-                                            ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#333'),
-                                            cursor: coins >= 100 ? 'pointer' : 'not-allowed'
-                                        }}
-                                    >
-                                        {loading ? 'Opening...' : `Open Pack (100 💰)`}
-                                    </button>
+
+                                    {/* Conditionally show normal button OR the progress bar */}
+                                    {downloadProgress ? (
+                                        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#aaa', fontWeight: 'bold' }}>
+                                                <span>{downloadProgress.status}</span>
+                                                {/* Display Current / Total */}
+                                                <span>{downloadProgress.current} / {downloadProgress.total}</span>
+                                            </div>
+                                            <div style={{ width: '100%', height: '12px', background: '#333', borderRadius: '6px', overflow: 'hidden' }}>
+                                                <div style={{ 
+                                                    // Calculate the width percentage dynamically for the CSS
+                                                    width: `${Math.floor((downloadProgress.current / downloadProgress.total) * 100)}%`, 
+                                                    height: '100%', 
+                                                    background: 'linear-gradient(90deg, #4caf50, #81c784)',
+                                                    transition: 'width 0.2s linear' 
+                                                }} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={handleOpenPack} 
+                                            disabled={loading || coins < 100}
+                                            style={{
+                                                ...buttonStyle(coins >= 100 ? '#ff5e5e' : '#333'),
+                                                cursor: coins >= 100 ? 'pointer' : 'not-allowed'
+                                            }}
+                                        >
+                                            {loading ? 'Opening...' : `Open Pack (100 💰)`}
+                                        </button>
+                                    )}
                                 </div>
                                 
                                 {pack.length === 0 ? (

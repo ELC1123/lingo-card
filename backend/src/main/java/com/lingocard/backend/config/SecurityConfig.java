@@ -35,6 +35,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll() // Leave Login & Register unlocked
+                .requestMatchers("/api/packs/stream-progress").permitAll()
                 .anyRequest().authenticated() // LOCK DOWN EVERYTHING ELSE
             )
             // Put our custom JWT Bouncer exactly where Spring expects to find passwords

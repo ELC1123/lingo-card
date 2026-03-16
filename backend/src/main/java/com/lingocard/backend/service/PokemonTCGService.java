@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -40,6 +40,7 @@ public class PokemonTCGService {
 
     private final MasterCardRepository masterCardRepository;
     private final CardRepository cardRepository;
+    private final SseService sseService;
 
     // Base URL for the Pokemon TCG API (external dependency)
     private final String API_BASE_URL = "https://api.tcgdex.net/v2/en";
@@ -95,6 +96,9 @@ public class PokemonTCGService {
         ExecutorService executor = Executors.newFixedThreadPool(10);
         try {
             JsonNode cardsArray = fetchFromApi(url);
+            int totalCards = cardsArray.size();
+            AtomicInteger completedCards = new AtomicInteger(0);
+
             List<CompletableFuture<MasterCard>> futures = new ArrayList<>();
 
             for(JsonNode node : cardsArray) {
@@ -110,6 +114,14 @@ public class PokemonTCGService {
 
                         String imageBase = node.path("image").asText("");
                         masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+
+                        int current = completedCards.incrementAndGet();
+                        
+                        String jsonUpdate = String.format(
+                            "{\"status\":\"Downloading %s\", \"current\":%d, \"total\":%d}", 
+                            setCode.toUpperCase(), current, totalCards
+                        );
+                        sseService.sendProgress(jsonUpdate);
 
                         return masterCard;
                     }   catch (Exception e) {
