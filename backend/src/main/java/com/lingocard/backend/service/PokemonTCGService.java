@@ -3,6 +3,12 @@ package com.lingocard.backend.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -86,38 +92,48 @@ public class PokemonTCGService {
      */
     private void cacheSetToLibrary(String setCode) {
         String url = API_BASE_URL + "/cards?set=" + setCode;
+        ExecutorService executor = Executors.newFixedThreadPool(10);
         try {
             JsonNode cardsArray = fetchFromApi(url);
-
-            List<MasterCard> batchToSave = new ArrayList<>();
+            List<CompletableFuture<MasterCard>> futures = new ArrayList<>();
 
             for(JsonNode node : cardsArray) {
-                try {
-                    String cardId = node.path("id").asText();
+                CompletableFuture<MasterCard> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        String cardId = node.path("id").asText();
+                        JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
 
-                    // Fetch full details for the card (separate API call)
-                    JsonNode fullCardData = fetchFromApi(API_BASE_URL + "/cards/" + cardId);
+                        MasterCard masterCard = new MasterCard();
+                        masterCard.setName(node.path("name").asText("Unknown"));
+                        masterCard.setSetCode(setCode);
+                        masterCard.setRarity(fullCardData.path("rarity").asText("Unknown"));
 
-                    MasterCard masterCard = new MasterCard();
-                    masterCard.setName(node.path("name").asText("Unknown"));
-                    masterCard.setSetCode(setCode);
-                    masterCard.setRarity(fullCardData.path("rarity").asText("Unknown"));
+                        String imageBase = node.path("image").asText("");
+                        masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
 
-                    // The API sometimes returns an image base — append format when present
-                    String imageBase = node.path("image").asText("");
-                    masterCard.setImageUrl(imageBase + (imageBase.isEmpty() ? "" : "/high.webp"));
+                        return masterCard;
+                    }   catch (Exception e) {
+                        log.warn("Failed to fetch details for card ID {}: {}", node.path("id").asText(), e.getMessage());
+                        return null;
+                    }
+                }, executor);
 
-                    batchToSave.add(masterCard);
-                } catch (Exception e) {
-                    // Log and continue — one failed card shouldn't block caching of the set
-                    log.warn("Failed to fetch details for card ID {}: {}", node.path("id").asText(), e.getMessage());
-                }
+                futures.add(future);
             }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+            List<MasterCard> batchToSave = futures.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
             // Save the whole batch of cards
             masterCardRepository.saveAll(batchToSave);
             log.info("Cached {} cards for set {}", batchToSave.size(), setCode);
         } catch (Exception e) {
             log.error("Caching failed for set {}: {}", setCode, e.getMessage());
+        } finally {
+            executor.shutdown();
         }
     }
 
