@@ -7,12 +7,12 @@ import Card from '../components/Card';
 const PackView = ({ pack, ownedCards }) => {
     return (
         <div style={{justifyContent: 'center', flexWrap: 'wrap', display: 'flex', gap: '20px'}}>
-            {pack.map((card) => {
+            {pack.map((card, index) => {
                 const uniqueKey = `${card.name}-${card.rarity}-${card.imageUrl}`;
                 const isNew = !ownedCards.has(uniqueKey);
 
                 // Use a stable key derived from card properties to avoid React reordering issues
-                const key = `${card.name}-${card.rarity}-${card.imageUrl}`;
+                const key = `${uniqueKey}-${index}`;
 
                 return (
                     <Card 
