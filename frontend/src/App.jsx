@@ -9,24 +9,16 @@ import QuizView from "./views/QuizView";
 import AuthView from "./views/AuthView";
 
 function App() {
-    // Pack currently opened (array of Card objects returned by backend after opening a pack)
-    const [pack, setPack] = useState([]);
-
-    // User's entire collection fetched from backend
-    const [collection, setCollection] = useState([]);
-
-    // Which main view is shown: 'home', 'pack', 'sets', 'binder', 'study', 'quiz'
-    const [view, setView] = useState('home');
-
-    // Currently selected set code for the binder view. false means none selected.
-    const [selectedSet, setSelectedSet] = useState(false);
+    const [pack, setPack] = useState([]);                   // pack opening state
+    const [collection, setCollection] = useState([]);       // collection state
+    const [view, setView] = useState('home');               // view state - 'home', 'pack', 'sets', 'binder', 'study', 'quiz'
+    const [selectedSet, setSelectedSet] = useState(false);  // Currently selected set code for the binder view. false means none selected.
 
     // Loading indicator used around network actions
     const [loading, setLoading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(null);
 
-    // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
-    const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());
+    const [previousOwnedCards, setPreviousOwnedCards] = useState(new Set());    // Snapshot of owned cards before opening a pack — used to determine "NEW" badges
     const [token, setToken] = useState(() => sessionStorage.getItem('lingo_token'));
     const [username, setUsername] = useState(() => sessionStorage.getItem('lingo_username'));
     
@@ -43,17 +35,43 @@ function App() {
         sessionStorage.removeItem('lingo_username');
         setToken(null);
         setUsername(null);
+        setCoins(0);
+        setCollection([]);
+        setView('home');
     };
 
-    // Coins persisted in localStorage. Initialize from storage if present.
-    const [coins, setCoins] = useState(() => {
-        const savedCoins = localStorage.getItem('coins');
-        return savedCoins != null ? parseInt(savedCoins, 10) : 0;
-    });
+    const [coins, setCoins] = useState(0);
 
-    useEffect(() => {
-        localStorage.setItem('coins', coins);
-    }, [coins]);
+    const fetchUserProfile = useCallback(async () => {
+        if(!token) return;
+        try {
+            const response = await fetch('http://localhost:8080/api/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const userData = await response.json();
+                setCoins(userData.coins);
+            }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+        }
+    }, [token]);
+
+    // Update coins when earned
+    const handleEarnCoins = useCallback(async (amount) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/users/earn?amount=${amount}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`}
+            });
+            if (response.ok) {
+                const newBalance = await response.json();
+                setCoins(newBalance);
+            }
+        } catch (error) {
+            console.error("Error earning coins:", error);
+        }
+    }, [token]);
 
     // State to track owned cards for "NEW!" badge logic
     const ownedCards = useMemo(() => {
@@ -92,13 +110,9 @@ function App() {
     useEffect(() => {
         if (token) {
             refreshCollection();
+            fetchUserProfile();
         }
-    }, [refreshCollection, token]);
-
-    // Update coins when earned
-    const handleEarnCoins = useCallback((amount) => {
-        setCoins(prev => prev + amount);
-    }, []);
+    }, [refreshCollection, fetchUserProfile,token]);
 
     // Memoized function to extract unique sets from the collection
     const handleOpenPack = useCallback(async () => {
@@ -133,7 +147,7 @@ function App() {
             setPack(data);
             setView('pack');
 
-            setCoins(prev => prev - PACK_COST);
+            fetchUserProfile();
             refreshCollection();
         } catch (error) {
             console.error("Error opening pack: ", error);
@@ -144,7 +158,7 @@ function App() {
             setDownloadProgress(null);
             setLoading(false);
         }
-    }, [coins, ownedCards, token, refreshCollection]);
+    }, [coins, ownedCards, token, refreshCollection, fetchUserProfile]);
 
     // Memoized function to extract unique sets from the collection
     const handleViewSets = useCallback(() => {
