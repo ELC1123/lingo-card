@@ -11,6 +11,7 @@ import AuthView from "./views/AuthView";
 function App() {
     const [pack, setPack] = useState([]);                   // pack opening state
     const [collection, setCollection] = useState([]);       // collection state
+    const [flashcards, setFlashcards] = useState([]);       // flashcard state for study mode
     const [view, setView] = useState('home');               // view state - 'home', 'pack', 'sets', 'binder', 'study', 'quiz'
     const [selectedSet, setSelectedSet] = useState(false);  // Currently selected set code for the binder view. false means none selected.
 
@@ -54,6 +55,21 @@ function App() {
             }
         } catch (error) {
             console.error("Error fetching user profile:", error);
+        }
+    }, [token]);
+
+    const fetchFlashcards = useCallback(async () => {
+        if (!token) return;
+        try {
+            const response = await fetch('http://localhost:8080/api/flashcards?level=1', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(response.ok) {
+                const data = await response.json();
+                setFlashcards(data);
+            }
+        } catch (error) {
+            console.error("Error fetching flashcards:", error);
         }
     }, [token]);
 
@@ -111,8 +127,9 @@ function App() {
         if (token) {
             refreshCollection();
             fetchUserProfile();
+            fetchFlashcards();
         }
-    }, [refreshCollection, fetchUserProfile,token]);
+    }, [refreshCollection, fetchUserProfile, fetchFlashcards, token]);
 
     // Memoized function to extract unique sets from the collection
     const handleOpenPack = useCallback(async () => {
@@ -288,7 +305,7 @@ function App() {
                                 <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
                                     <h2 style={{ margin: 0 }}>HSK 1 Study Session</h2>
                                 </div>
-                                <StudyView onEarnCoins={handleEarnCoins} />
+                                <StudyView onEarnCoins={handleEarnCoins} flashcards={flashcards}/>
                             </div>
                         )}
 
@@ -298,7 +315,7 @@ function App() {
                                 <div style={{ borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', paddingTop: '20px' }}>
                                     <h2 style={{ margin: 0 }}>Quiz</h2>
                                 </div>
-                                <QuizView onEarnCoins={handleEarnCoins} />
+                                <QuizView onEarnCoins={handleEarnCoins} flashcards={flashcards} />
                             </div>
                         )}
                     </div>

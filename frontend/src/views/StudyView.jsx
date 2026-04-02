@@ -1,22 +1,24 @@
 import { useState } from 'react';
-import { HSK1_DATA } from '../data/hsk1data';
 
 /**
  * Simple flashcard-style study view. Clicking the card flips it to reveal pronunciation
  * and example usage. Each "Next" grants the user some coins (via `onEarnCoins`).
  */
-const StudyView = ({onEarnCoins}) => {
+const StudyView = ({onEarnCoins, flashcards}) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
-    const currentCard = HSK1_DATA[currentIndex];
+    if (!flashcards || flashcards.length === 0) 
+        return <div style={{color: 'white'}}>Loading cards...</div>;
+
+    const currentCard = flashcards[currentIndex];
 
     // Advance to the next card and reward the user for studying
     const handleNext = () => {
         onEarnCoins(10);
         setIsFlipped(false);
         setTimeout(() => {
-            setCurrentIndex((prevIndex) => (prevIndex + 1) % HSK1_DATA.length);
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % flashcards.length);
         }, 150);
     };
 
@@ -24,7 +26,7 @@ const StudyView = ({onEarnCoins}) => {
     const handlePrev = () => {
         setIsFlipped(false);
         setTimeout(() => {
-            setCurrentIndex((prevIndex) => (prevIndex - 1 + HSK1_DATA.length) % HSK1_DATA.length);
+            setCurrentIndex((prevIndex) => (prevIndex - 1 + flashcards.length) % flashcards.length);
         }, 150);
     }
 
@@ -48,7 +50,7 @@ const StudyView = ({onEarnCoins}) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
             
             <div style={{color: '#888', marginBottom: '20px', fontSize: '18px'}}>
-                Card {currentIndex + 1} / {HSK1_DATA.length}
+                Card {currentIndex + 1} / {flashcards.length}
             </div>
 
             {/* This wrapper holds the card size rigid so it doesn't squash */}
@@ -74,11 +76,14 @@ const StudyView = ({onEarnCoins}) => {
                         <h2 style={{color: '#e91e63', fontSize: '32px', marginBottom: '5px'}}>{currentCard.pinyin}</h2>
                         <h3 style={{color: '#333', marginTop: '0', marginBottom: '20px'}}>{currentCard.meaning}</h3>
 
-                        <div style={{textAlign: 'left', width: '100%', padding: '10px', background: '#eee', borderRadius: '8px'}}>
-                            <p style={{margin: '0 0 5px 0', fontWeight: 'bold', color: '#555'}}>Example:</p>
-                            <p style={{margin: '0', fontSize: '16px', color: '#333'}}>{currentCard.sentence}</p>
-                            <p style={{margin: '5px 0 0 0', fontSize: '14px', color: '#666', fontStyle: 'italic'}}>{currentCard.sentenceMeaning}</p>
-                        </div>
+                        {/* Only render the example box IF a sentence actually exists */}
+                        {currentCard.sentence && currentCard.sentence.trim() !== '' && (
+                            <div style={{textAlign: 'left', width: '100%', padding: '10px', background: '#eee', borderRadius: '8px'}}>
+                                <p style={{margin: '0 0 5px 0', fontWeight: 'bold', color: '#555'}}>Example:</p>
+                                <p style={{margin: '0', fontSize: '16px', color: '#333'}}>{currentCard.sentence}</p>
+                                <p style={{margin: '5px 0 0 0', fontSize: '14px', color: '#666', fontStyle: 'italic'}}>{currentCard.sentenceMeaning}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

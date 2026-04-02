@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { HSK1_DATA } from '../data/hsk1data';
 
 /**
  * Quiz view supporting two modes:
@@ -8,7 +7,7 @@ import { HSK1_DATA } from '../data/hsk1data';
  *
  * Users pick a mode first (mode selection screen), then answer random HSK1 questions.
  */
-const QuizView = ({ onEarnCoins }) => {
+const QuizView = ({ onEarnCoins, flashcards }) => {
     // null = mode selection screen; 'mcq' or 'typing' = active quiz mode
     const [mode, setMode] = useState(null);
 
@@ -24,14 +23,17 @@ const QuizView = ({ onEarnCoins }) => {
     // Feedback object { type: 'correct'|'wrong', msg: string } shown after answer submission
     const [feedback, setFeedback] = useState(null);
 
+    if (!flashcards || flashcards.length === 0) 
+        return <div style={{color: 'white'}}>Loading quiz data...</div>;
+
     // Pick a random card from the HSK1 dataset
     const pickRandomCard = useCallback(() => {
-        return HSK1_DATA[Math.floor(Math.random() * HSK1_DATA.length)];
+        return flashcards[Math.floor(Math.random() * flashcards.length)];
     }, []);
 
     // Generate multiple choice options: 1 correct answer + 3 random incorrect ones, shuffled
     const generateMCOptions = useCallback((correctCard) => {
-        const wrongOptions = HSK1_DATA
+        const wrongOptions = flashcards
             .filter(c => c.id !== correctCard.id)
             .sort(() => 0.5 - Math.random()) // Simple shuffle
             .slice(0, 3); // Take first 3 wrong answers
@@ -137,7 +139,7 @@ const QuizView = ({ onEarnCoins }) => {
             {/* Question display: show the Hanzi character */}
             <div style={{ 
                 backgroundColor: 'white', width: '100%', padding: '60px 20px', 
-                borderRadius: '15px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', marginBottom: '30px'
+                borderRadius: '15px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', marginBottom: '20px'
             }}>
                 <h1 style={{ fontSize: '100px', margin: 0, color: '#333' }}>{currentCard?.hanzi}</h1>
                 <p style={{ color: '#888', margin: '10px 0 0 0' }}>What does this mean?</p>
@@ -146,7 +148,7 @@ const QuizView = ({ onEarnCoins }) => {
             {/* Feedback banner: shown after question is answered */}
             {feedback && (
                 <div style={{
-                    width: '100%', padding: '15px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px',
+                    width: '100%', padding: '10px', borderRadius: '8px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px',
                     backgroundColor: feedback.type === 'correct' ? '#1b5e20' : '#b71c1c', color: 'white',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
                 }}>
@@ -156,14 +158,14 @@ const QuizView = ({ onEarnCoins }) => {
 
             {/* Multiple choice answer options (2x2 grid) */}
             {mode === 'mcq' && (
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', width: '100%'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%'}}>
                     {options.map((opt, i) => (
                         <button 
                             key={`opt-${opt.id}`} 
                             onClick={() => handleMcqGuess(opt)} 
                             disabled={feedback !== null}
                             style={{
-                                padding: '20px', fontSize: '18px', cursor: feedback ? 'default' : 'pointer',
+                                padding: '15px', fontSize: '18px', cursor: feedback ? 'default' : 'pointer',
                                 backgroundColor: '#2a2a2a', color: 'white', border: '1px solid #444', borderRadius: '8px',
                                 transition: 'all 0.2s', opacity: feedback ? 0.6 : 1
                             }}
@@ -207,7 +209,7 @@ const QuizView = ({ onEarnCoins }) => {
             {feedback && (
                 <button 
                     onClick={nextQuestion}
-                    style={{marginTop: '20px', padding: '15px 40px', fontSize: '20px', backgroundColor: '#4caf50', 
+                    style={{marginTop: '10px', padding: '15px 30px', fontSize: '20px', backgroundColor: '#4caf50', 
                         color: 'white', border: 'none', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold', 
                         boxShadow: '0 4px 10px rgba(76, 175, 80, 0.3)'}}
                 >
